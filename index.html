@@ -162,7 +162,7 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 /* MOBILE PANEL */
 .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:150}
 .mobile-overlay.open{display:block}
-.mobile-panel{position:fixed;bottom:0;left:0;right:0;background:var(--card);z-index:160;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease;border-top:2px solid var(--accent)}
+.mobile-panel{position:fixed;bottom:0;left:0;right:0;background:var(--card);z-index:160;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease;border-top:2px solid var(--accent);overscroll-behavior:contain;touch-action:pan-y}
 .mobile-panel.open{transform:translateY(0)}
 .mobile-panel-header{padding:14px 18px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0}
 .mobile-panel-title{font-family:'Instrument Serif',serif;font-size:17px;font-weight:400}
@@ -539,14 +539,17 @@ async function saveEdit(id) {
 
 // MOBILE
 function toggleMobile() {
+  var open = document.getElementById('mobilePanel').classList.contains('open');
   document.getElementById('fab').classList.toggle('open');
   document.getElementById('mobileOverlay').classList.toggle('open');
   document.getElementById('mobilePanel').classList.toggle('open');
+  document.body.style.overscrollBehaviorY = open ? '' : 'none';
 }
 function closeMobile() {
   document.getElementById('fab').classList.remove('open');
   document.getElementById('mobileOverlay').classList.remove('open');
   document.getElementById('mobilePanel').classList.remove('open');
+  document.body.style.overscrollBehaviorY = '';
 }
 
 // Swipe down to close mobile panel
