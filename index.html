@@ -412,8 +412,11 @@ async function toggleExpand(id) {
   var pt = playtests.find(function(x){return x.id===id;});
   if (!pt) return;
   pt.expanded = !pt.expanded;
+  var cardEl = document.getElementById('card-'+id);
+  if (cardEl) {
+    cardEl.classList.toggle('expanded', pt.expanded);
+  }
   await sb.from('playtests').update({expanded: pt.expanded}).eq('id', id);
-  render();
 }
 
 async function completePlaytest(id) {
@@ -538,16 +541,6 @@ function fmtTimer(pt) {
   return {text:pad(h)+':'+pad(m)+':'+pad(s), cls, pct:Math.min(100,(ms/totalMs)*100)};
 }
 
-function fmtTimer(deadlineStr, totalHours) {
-  var ms = new Date(deadlineStr) - Date.now();
-  var totalMs = (totalHours||48) * 3600000;
-  if (ms <= 0) return {text:'OVERDUE', cls:'danger', pct:0};
-  var h = Math.floor(ms/3600000);
-  var m = Math.floor((ms%3600000)/60000);
-  var s = Math.floor((ms%60000)/1000);
-  var cls = h<4?'danger':h<12?'warning':'';
-  return {text:pad(h)+':'+pad(m)+':'+pad(s), cls, pct:Math.min(100,(ms/totalMs)*100)};
-}
 
 function pad(n) { return String(n).padStart(2,'0'); }
 
