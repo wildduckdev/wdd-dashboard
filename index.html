@@ -64,7 +64,7 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 /* CARD */
 .playtest-card{background:var(--card);border:1px solid var(--rule);margin-bottom:8px;overflow:hidden;animation:slideIn 0.25s ease}
 @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.playtest-card.completed{opacity:0.55}
+
 .playtest-card.completed .card-summary{background:var(--accent-light)}
 
 .card-summary{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:var(--bg);border-bottom:1px solid transparent;transition:background 0.15s}
@@ -105,6 +105,8 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .timer-display{font-family:'Instrument Serif',serif;font-size:22px;color:var(--accent);line-height:1}
 .timer-display.warning{color:var(--warning)}
 .timer-display.danger{color:var(--danger)}
+.timer-display.waiting{color:var(--ink-muted);font-size:16px;font-family:'DM Mono',monospace}
+.timer-display.paused{color:var(--warning)}
 .timer-bar-wrap{flex:1;height:3px;background:var(--rule)}
 .timer-bar{height:100%;background:var(--accent);transition:width 1s linear,background 1s}
 
@@ -184,6 +186,10 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
   .fab,.mobile-overlay,.mobile-panel{display:none!important}
 }
 </style>
+<meta name="theme-color" content="#2d5a3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WDD">
 </head>
 <body>
 
@@ -375,12 +381,15 @@ async function addPlaytest(p) {
   var hours = deadSel==='custom' ? (parseInt(g(p+'hrs'))||48) : parseInt(deadSel);
   var platform = g(p+'plat');
   var platOs = platform==='Standalone' ? g(p+'os') : null;
-  var deadline = new Date(Date.now() + hours*3600000).toISOString();
+  var waitingEl = document.getElementById(p+'waiting');
+  var waiting = waitingEl ? waitingEl.checked : false;
+  var deadline = waiting ? null : new Date(Date.now() + hours*3600000).toISOString();
   var {data: ud} = await sb.auth.getUser();
   var rec = {
     user_id: ud.user.id,
     name, genre: g(p+'genre'), dev: g(p+'dev'), link: g(p+'link'),
     "desc": g(p+'notes'), payment: payType, amount, platform, platform_os: platOs,
+    timer_started: !waiting, timer_paused: false, paused_remaining: null,
     deadline, total_hours: hours, completed: false, expanded: true
   };
   var {data, error} = await sb.from('playtests').insert(rec).select().single();
@@ -394,6 +403,7 @@ function clearF(p) {
   var pay = document.getElementById(p+'pay'); if(pay) pay.value='paid';
   var dead = document.getElementById(p+'dead'); if(dead) dead.value='48';
   var plat = document.getElementById(p+'plat'); if(plat) plat.value='Web';
+  var w = document.getElementById(p+'waiting'); if(w) w.checked=false;
   toggleF(p);
 }
 
@@ -511,6 +521,23 @@ function toggleCompleted() {
 }
 
 // TIMER
+function fmtTimer(pt) {
+  if (!pt.timer_started || !pt.deadline) return {text:'WAITING', cls:'waiting', pct:100};
+  if (pt.timer_paused && pt.paused_remaining != null) {
+    var ms = pt.paused_remaining;
+    var totalMs = (pt.total_hours||48)*3600000;
+    if (ms<=0) return {text:'OVERDUE', cls:'danger', pct:0};
+    var h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
+    return {text:pad(h)+':'+pad(m)+':'+pad(s)+' (paused)', cls:'paused', pct:Math.min(100,(ms/totalMs)*100)};
+  }
+  var ms = new Date(pt.deadline) - Date.now();
+  var totalMs = (pt.total_hours||48)*3600000;
+  if (ms<=0) return {text:'OVERDUE', cls:'danger', pct:0};
+  var h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
+  var cls = h<4?'danger':h<12?'warning':'';
+  return {text:pad(h)+':'+pad(m)+':'+pad(s), cls, pct:Math.min(100,(ms/totalMs)*100)};
+}
+
 function fmtTimer(deadlineStr, totalHours) {
   var ms = new Date(deadlineStr) - Date.now();
   var totalMs = (totalHours||48) * 3600000;
@@ -548,8 +575,8 @@ function card(pt) {
   var detail = '<div class="card-detail">'+undoBanner;
 
   if (!pt.completed) {
-    var t = fmtTimer(pt.deadline, pt.total_hours);
-    var bc = t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d';
+    var t = fmtTimer(pt);
+    var bc = t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':t.cls==='waiting'||t.cls==='paused'?'#e67e22':'#2d5a3d';
     detail += '<div class="card-body">' +
       (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'') +
       (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'') +
@@ -567,7 +594,7 @@ function card(pt) {
       '<div class="edit-field edit-field-full"><label>Link</label><input id="el-'+pt.id+'" value="'+esc(pt.link)+'"></div>' +
       '<div class="edit-field edit-field-full"><label>Notes</label><textarea id="edesc-'+pt.id+'">'+esc(pt["desc"])+'</textarea></div>' +
       '</div><div class="edit-actions"><button class="btn btn-save" onclick="saveEdit(\''+pt.id+'\')">Save</button><button class="btn btn-cancel" onclick="toggleEdit(\''+pt.id+'\')">Cancel</button></div></div>' +
-      '<div class="card-footer"><button class="btn btn-complete" onclick="completePlaytest(\''+pt.id+'\')">Mark Complete</button><button class="btn btn-edit" onclick="toggleEdit(\''+pt.id+'\')">Edit</button><button class="btn btn-delete" onclick="deletePlaytest(\''+pt.id+'\')">Delete</button></div>';
+      '<div class="card-footer">'+((!pt.timer_started)?'<button class="btn btn-complete" onclick="startTimer(\''+pt.id+'\')" style="background:#e67e22;border-color:#e67e22">Start Timer</button>':'')+(pt.timer_started?'<button class="btn btn-edit" onclick="pauseTimer(\''+pt.id+'\')">'+(pt.timer_paused?'Resume Timer':'Pause Timer')+'</button>':'')+'<button class="btn btn-complete" onclick="completePlaytest(\''+pt.id+'\')">Mark Complete</button><button class="btn btn-edit" onclick="toggleEdit(\''+pt.id+'\')">Edit</button><button class="btn btn-delete" onclick="deletePlaytest(\''+pt.id+'\')">Delete</button></div>';
   } else {
     detail += '<div class="card-body">' +
       (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'') +
@@ -586,6 +613,32 @@ function card(pt) {
     '<div class="card-summary-right">'+platBadge(pt)+(pt.genre?'<span class="badge badge-info">'+esc(pt.genre)+'</span>':'')+
     '<span class="badge '+bCls+'">'+payLabel+'</span>'+(pt.completed?'<span class="badge badge-done">Done</span>':'')+
     '</div></div>'+detail+'</div>';
+}
+
+async function startTimer(id) {
+  var pt = playtests.find(function(x){return x.id===id;});
+  if (!pt) return;
+  var deadline = new Date(Date.now() + (pt.total_hours||48)*3600000).toISOString();
+  await sb.from('playtests').update({timer_started:true, deadline:deadline, timer_paused:false}).eq('id',id);
+  pt.timer_started=true; pt.deadline=deadline; pt.timer_paused=false;
+  render();
+}
+
+async function pauseTimer(id) {
+  var pt = playtests.find(function(x){return x.id===id;});
+  if (!pt) return;
+  if (pt.timer_paused) {
+    // Resume: recalculate deadline from remaining
+    var deadline = new Date(Date.now() + (pt.paused_remaining||0)).toISOString();
+    await sb.from('playtests').update({timer_paused:false, deadline:deadline, paused_remaining:null}).eq('id',id);
+    pt.timer_paused=false; pt.deadline=deadline; pt.paused_remaining=null;
+  } else {
+    // Pause: save remaining ms
+    var remaining = new Date(pt.deadline) - Date.now();
+    await sb.from('playtests').update({timer_paused:true, paused_remaining:remaining}).eq('id',id);
+    pt.timer_paused=true; pt.paused_remaining=remaining;
+  }
+  render();
 }
 
 function render() {
@@ -625,7 +678,8 @@ setInterval(function() {
     var tel = document.getElementById('tmr-'+pt.id);
     var bel = document.getElementById('bar-'+pt.id);
     if (!tel) return;
-    var t = fmtTimer(pt.deadline, pt.total_hours);
+    if (pt.timer_paused || !pt.timer_started) return;
+      var t = fmtTimer(pt);
     tel.textContent = t.text;
     tel.className = 'timer-display '+t.cls;
     if (bel) { bel.style.width=t.pct+'%'; bel.style.background=t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d'; }
