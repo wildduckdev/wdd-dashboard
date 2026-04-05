@@ -190,6 +190,48 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WDD">
+<script>
+// Generate icon canvas and set as apple-touch-icon dynamically
+(function() {
+  try {
+    var c = document.createElement('canvas');
+    c.width = 192; c.height = 192;
+    var ctx = c.getContext('2d');
+    // Background rounded rect
+    ctx.fillStyle = '#2d5a3d';
+    ctx.beginPath();
+    ctx.roundRect(0,0,192,192,36);
+    ctx.fill();
+    // Body ellipse
+    ctx.fillStyle = '#f5f2ec';
+    ctx.beginPath();
+    ctx.ellipse(96,108,48,36,0,0,Math.PI*2);
+    ctx.fill();
+    // Head ellipse
+    ctx.beginPath();
+    ctx.ellipse(132,84,24,18,0,0,Math.PI*2);
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = '#2d5a3d';
+    ctx.beginPath();
+    ctx.arc(141,78,4.5,0,Math.PI*2);
+    ctx.fill();
+    // Beak
+    ctx.fillStyle = '#e8a020';
+    ctx.beginPath();
+    ctx.moveTo(156,84); ctx.lineTo(174,90); ctx.lineTo(156,96);
+    ctx.fill();
+    var url = c.toDataURL('image/png');
+    var link = document.createElement('link');
+    link.rel = 'apple-touch-icon';
+    link.href = url;
+    document.head.appendChild(link);
+    // Also set favicon
+    var favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) favicon.href = url;
+  } catch(e) {}
+})();
+</script>
 </head>
 <body>
 
@@ -506,6 +548,43 @@ function closeMobile() {
   document.getElementById('mobileOverlay').classList.remove('open');
   document.getElementById('mobilePanel').classList.remove('open');
 }
+
+// Swipe down to close mobile panel
+(function() {
+  var startY = 0;
+  var isDragging = false;
+  var panel;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    panel = document.getElementById('mobilePanel');
+    if (!panel) return;
+
+    panel.addEventListener('touchstart', function(e) {
+      startY = e.touches[0].clientY;
+      isDragging = true;
+    }, {passive: true});
+
+    panel.addEventListener('touchmove', function(e) {
+      if (!isDragging) return;
+      var deltaY = e.touches[0].clientY - startY;
+      if (deltaY > 0) {
+        panel.style.transform = 'translateY(' + deltaY + 'px)';
+      }
+    }, {passive: true});
+
+    panel.addEventListener('touchend', function(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      var deltaY = e.changedTouches[0].clientY - startY;
+      if (deltaY > 80) {
+        panel.style.transform = '';
+        closeMobile();
+      } else {
+        panel.style.transform = '';
+      }
+    }, {passive: true});
+  });
+})();
 
 // FILTER
 function setFilter(f, el) {
