@@ -561,7 +561,7 @@ function closeMobile() {
 
     panel.addEventListener('touchstart', function(e) {
       startY = e.touches[0].clientY;
-      isDragging = true;
+      isDragging = panel.scrollTop === 0;
     }, {passive: true});
 
     panel.addEventListener('touchmove', function(e) {
@@ -569,12 +569,17 @@ function closeMobile() {
       var deltaY = e.touches[0].clientY - startY;
       if (deltaY > 0) {
         panel.style.transform = 'translateY(' + deltaY + 'px)';
+        panel.style.transition = 'none';
+      } else {
+        isDragging = false;
+        panel.style.transform = '';
       }
     }, {passive: true});
 
     panel.addEventListener('touchend', function(e) {
       if (!isDragging) return;
       isDragging = false;
+      panel.style.transition = '';
       var deltaY = e.changedTouches[0].clientY - startY;
       if (deltaY > 80) {
         panel.style.transform = '';
