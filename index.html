@@ -5,11 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WDD Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232d5a3d'/%3E%3Cellipse cx='32' cy='36' rx='16' ry='12' fill='%23f5f2ec'/%3E%3Cellipse cx='44' cy='28' rx='8' ry='6' fill='%23f5f2ec'/%3E%3Ccircle cx='47' cy='26' r='1.5' fill='%232d5a3d'/%3E%3Cpolygon points='52,28 58,30 52,32' fill='%23e8a020'/%3E%3C/svg%3E">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d5a3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WDD">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f5f2ec;--ink:#1a1814;--ink-muted:#6b6560;--accent:#2d5a3d;--accent-light:#e8f0eb;--rule:#d8d3cb;--card:#ffffff;--danger:#c0392b;--warning:#e67e22}
+:root{
+  --bg:#f5f2ec;--ink:#1a1814;--ink-muted:#6b6560;
+  --accent:#2d5a3d;--accent-light:#e8f0eb;--rule:#d8d3cb;
+  --card:#fff;--danger:#c0392b;--warning:#e67e22;
+}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:'DM Mono',monospace;font-size:13px;line-height:1.6;min-height:100vh}
 
@@ -36,7 +46,7 @@ body{background:var(--bg);color:var(--ink);font-family:'DM Mono',monospace;font-
 
 /* HEADER */
 header{background:var(--ink);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
-.header-inner{max-width:1200px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
+.header-inner{max-width:1300px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
 .header-logo{font-family:'Instrument Serif',serif;font-size:18px;letter-spacing:-0.02em;color:#fff}
 .header-logo span{font-style:italic;color:#6b9e7a}
 .header-right{display:flex;align-items:center;gap:24px}
@@ -47,16 +57,28 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .logout-btn{background:none;border:1px solid #333;color:#6b6560;padding:5px 12px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s}
 .logout-btn:hover{border-color:var(--danger);color:var(--danger)}
 
+/* NAV TABS */
+.nav-tabs{background:var(--ink);border-bottom:1px solid #222}
+.nav-tabs-inner{max-width:1300px;margin:0 auto;padding:0 32px;display:flex;gap:0}
+.nav-tab{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;padding:10px 20px;color:#555;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;background:none;border-left:none;border-right:none;border-top:none}
+.nav-tab:hover{color:#fff}
+.nav-tab.active{color:#6b9e7a;border-bottom-color:#6b9e7a}
+
 /* MAIN */
-.main{max-width:1200px;margin:0 auto;padding:28px 32px;display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+.page{display:none;max-width:1300px;margin:0 auto;padding:28px 32px}
+.page.active{display:block}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
 
 /* FILTERS */
-.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .section-title{font-family:'Instrument Serif',serif;font-size:20px;font-weight:400}
-.filters{display:flex;gap:4px}
+.filter-row{display:flex;gap:4px;flex-wrap:wrap}
 .filter-btn{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;padding:5px 12px;border:1px solid var(--rule);background:transparent;color:var(--ink-muted);cursor:pointer;transition:all 0.15s}
 .filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .filter-btn:hover:not(.active){border-color:var(--ink);color:var(--ink)}
+.filter-sep{width:1px;background:var(--rule);margin:0 4px}
 
 /* EMPTY */
 .empty-state{border:1px dashed var(--rule);padding:40px 32px;text-align:center;color:var(--ink-muted);font-size:12px;line-height:1.8}
@@ -64,7 +86,6 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 /* CARD */
 .playtest-card{background:var(--card);border:1px solid var(--rule);margin-bottom:8px;overflow:hidden;animation:slideIn 0.25s ease}
 @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-
 .playtest-card.completed .card-summary{background:var(--accent-light)}
 
 .card-summary{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:var(--bg);border-bottom:1px solid transparent;transition:background 0.15s}
@@ -81,8 +102,9 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .badge-free{color:var(--ink-muted);border-color:var(--rule)}
 .badge-done{color:#fff;background:var(--accent);border-color:var(--accent)}
 .badge-info{color:var(--ink-muted);border-color:var(--rule)}
+.badge-platform-ext{color:#7b5ea7;border-color:#7b5ea7}
 
-/* UNDO BANNER */
+/* UNDO */
 .undo-banner{background:var(--ink);color:#fff;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;font-size:11px}
 .undo-countdown{color:#6b9e7a;margin-left:6px;font-weight:500}
 .undo-btn{background:#6b9e7a;color:#fff;border:none;padding:4px 12px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer}
@@ -90,7 +112,6 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 /* CARD DETAIL */
 .card-detail{display:none}
 .playtest-card.expanded .card-detail{display:block}
-
 .card-body{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
 .card-field label{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);display:block;margin-bottom:2px}
 .card-field a{color:var(--accent);text-decoration:none;font-size:11px;word-break:break-all}
@@ -105,7 +126,7 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .timer-display{font-family:'Instrument Serif',serif;font-size:22px;color:var(--accent);line-height:1}
 .timer-display.warning{color:var(--warning)}
 .timer-display.danger{color:var(--danger)}
-.timer-display.waiting{color:var(--ink-muted);font-size:16px;font-family:'DM Mono',monospace}
+.timer-display.waiting{color:var(--ink-muted);font-size:14px;font-family:'DM Mono',monospace}
 .timer-display.paused{color:var(--warning)}
 .timer-bar-wrap{flex:1;height:3px;background:var(--rule)}
 .timer-bar{height:100%;background:var(--accent);transition:width 1s linear,background 1s}
@@ -127,6 +148,8 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:7px 14px;border:1px solid;cursor:pointer;transition:all 0.15s}
 .btn-complete{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-complete:hover{background:#1e3d2a}
+.btn-start{background:var(--warning);color:#fff;border-color:var(--warning)}
+.btn-start:hover{background:#c87000}
 .btn-delete{background:transparent;color:var(--danger);border-color:var(--danger)}
 .btn-delete:hover{background:var(--danger);color:#fff}
 .btn-edit{background:transparent;color:var(--ink-muted);border-color:var(--rule)}
@@ -134,16 +157,18 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .btn-save{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-save:hover{background:#1e3d2a}
 .btn-cancel{background:transparent;color:var(--ink-muted);border-color:var(--rule)}
+.btn-pause{background:transparent;color:var(--warning);border-color:var(--warning)}
+.btn-pause:hover{background:var(--warning);color:#fff}
 
 /* COMPLETED SECTION */
 .completed-toggle{margin-top:20px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--ink-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;user-select:none;padding:8px 0;border-top:1px solid var(--rule)}
 .completed-toggle:hover{color:var(--ink)}
 
 /* FORM PANEL */
-.form-panel{background:var(--card);border:1px solid var(--rule);position:sticky;top:68px}
+.form-panel{background:var(--card);border:1px solid var(--rule);position:sticky;top:92px}
 .form-panel-header{padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--ink);color:#fff}
 .form-panel-title{font-family:'Instrument Serif',serif;font-size:17px;font-weight:400}
-.form-panel-body{padding:18px;display:flex;flex-direction:column;gap:11px}
+.form-panel-body{padding:18px;display:flex;flex-direction:column;gap:11px;max-height:calc(100vh - 200px);overflow-y:auto}
 .form-field{display:flex;flex-direction:column;gap:3px}
 .form-field label{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted)}
 .form-field input,.form-field textarea,.form-field select{background:var(--bg);border:1px solid var(--rule);padding:8px 10px;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink);outline:none;transition:border-color 0.2s;width:100%}
@@ -151,8 +176,30 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .form-field textarea{resize:vertical;min-height:65px}
 .form-field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6560' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-color:var(--bg)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-check{display:flex;flex-direction:row;align-items:center;gap:8px}
+.form-check input{width:auto}
+.form-check label{font-size:12px;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer}
 .btn-add{background:var(--accent);color:#fff;border:none;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;width:100%;transition:background 0.2s;margin-top:2px}
 .btn-add:hover{background:#1e3d2a}
+
+/* STATS PAGE */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--rule);padding:20px 24px}
+.stat-card-num{font-family:'Instrument Serif',serif;font-size:36px;color:var(--accent);line-height:1;margin-bottom:4px}
+.stat-card-label{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-card{background:var(--card);border:1px solid var(--rule);padding:20px}
+.chart-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);margin-bottom:16px}
+.chart-wrap{position:relative;height:200px}
+
+/* PLATFORMS PAGE */
+.platforms-grid{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+.platform-card{background:var(--card);border:1px solid var(--rule);padding:16px 20px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.platform-card-left{}
+.platform-name{font-family:'Instrument Serif',serif;font-size:16px;font-weight:400;margin-bottom:2px}
+.platform-meta{font-size:11px;color:var(--ink-muted)}
+.platform-meta a{color:var(--accent);text-decoration:none}
+.platform-actions{display:flex;gap:8px}
 
 /* FAB */
 .fab{display:none;position:fixed;bottom:24px;right:24px;width:52px;height:52px;background:var(--accent);border:none;border-radius:50%;font-size:26px;color:#fff;cursor:pointer;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:background 0.2s,transform 0.2s;align-items:center;justify-content:center}
@@ -169,34 +216,28 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .mobile-close{background:none;border:none;color:#6b6560;font-size:20px;cursor:pointer;padding:0 4px}
 .mobile-panel-body{padding:18px;display:flex;flex-direction:column;gap:11px}
 
-/* LOADING */
 .loading{text-align:center;padding:40px;color:var(--ink-muted);font-size:12px}
 
-/* RESPONSIVE */
 @media(max-width:860px){
-  .main{grid-template-columns:1fr;padding:16px}
+  .two-col,.platforms-grid{grid-template-columns:1fr}
   .form-panel{display:none}
   .fab{display:flex}
   .header-inner{padding:12px 16px}
   .header-stats{gap:14px}
-  .card-body{grid-template-columns:1fr}
-  .edit-grid{grid-template-columns:1fr}
+  .card-body,.edit-grid{grid-template-columns:1fr}
+  .page{padding:16px}
+  .nav-tabs-inner{padding:0 16px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
 }
 @media(min-width:861px){
   .fab,.mobile-overlay,.mobile-panel{display:none!important}
 }
 </style>
-<meta name="theme-color" content="#2d5a3d">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="WDD">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
+<!-- AUTH -->
 <div id="authScreen" class="auth-screen">
   <div class="auth-box">
     <div class="auth-header">
@@ -204,14 +245,8 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
       <div class="auth-sub">Dashboard</div>
     </div>
     <div class="auth-body">
-      <div class="auth-field">
-        <label>Email</label>
-        <input type="email" id="authEmail" placeholder="you@email.com" onkeydown="if(event.key==='Enter')authAction()">
-      </div>
-      <div class="auth-field">
-        <label>Password</label>
-        <input type="password" id="authPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')authAction()">
-      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="authEmail" placeholder="you@email.com" onkeydown="if(event.key==='Enter')authAction()"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="authPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')authAction()"></div>
       <div class="auth-error" id="authError"></div>
       <button class="auth-btn" onclick="authAction()" id="authBtn">Sign In</button>
       <div class="auth-switch" id="authSwitch">No account? <a onclick="toggleAuthMode()">Sign up</a></div>
@@ -235,33 +270,99 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
     </div>
   </header>
 
-  <div class="main">
-    <div>
-      <div class="list-header">
-        <div class="section-title">Active Playtests</div>
-        <div class="filters">
-          <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-          <button class="filter-btn" onclick="setFilter('paid',this)">Paid</button>
-          <button class="filter-btn" onclick="setFilter('free',this)">Free</button>
-        </div>
-      </div>
-      <div id="activeList"><div class="loading">Loading...</div></div>
-      <div class="completed-toggle" onclick="toggleCompleted()">
-        <span id="completedArrow">&#9660;</span> Completed (<span id="completedCount">0</span>)
-      </div>
-      <div id="completedSection">
-        <div id="completedList"></div>
-      </div>
+  <div class="nav-tabs">
+    <div class="nav-tabs-inner">
+      <button class="nav-tab active" onclick="showPage('playtests',this)">Playtests</button>
+      <button class="nav-tab" onclick="showPage('stats',this)">Stats</button>
+      <button class="nav-tab" onclick="showPage('platforms',this)">Platforms</button>
     </div>
+  </div>
 
-    <div>
-      <div class="form-panel">
-        <div class="form-panel-header"><div class="form-panel-title">Add Playtest</div></div>
-        <div class="form-panel-body" id="desktopForm"></div>
+  <!-- PLAYTESTS PAGE -->
+  <div class="page active" id="page-playtests">
+    <div class="two-col">
+      <div>
+        <div class="list-header">
+          <div class="section-title">Active Playtests</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="filter-row" id="payFilter">
+              <button class="filter-btn active" onclick="setFilter('pay','all',this)">All</button>
+              <button class="filter-btn" onclick="setFilter('pay','paid',this)">Paid</button>
+              <button class="filter-btn" onclick="setFilter('pay','free',this)">Free</button>
+            </div>
+            <div class="filter-sep"></div>
+            <div class="filter-row" id="sourceFilter">
+              <button class="filter-btn active" onclick="setFilter('source','all',this)">All</button>
+              <button class="filter-btn" onclick="setFilter('source','direct',this)">Direct</button>
+              <button class="filter-btn" onclick="setFilter('source','platform',this)">Platform</button>
+            </div>
+          </div>
+        </div>
+        <div id="activeList"><div class="loading">Loading...</div></div>
+        <div class="completed-toggle" onclick="toggleCompleted()">
+          <span id="completedArrow">&#9660;</span> Completed (<span id="completedCount">0</span>)
+        </div>
+        <div id="completedSection"><div id="completedList"></div></div>
+      </div>
+      <div>
+        <div class="form-panel">
+          <div class="form-panel-header"><div class="form-panel-title">Add Playtest</div></div>
+          <div class="form-panel-body" id="desktopForm"></div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- STATS PAGE -->
+  <div class="page" id="page-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-num" id="s-total-earned">$0</div><div class="stat-card-label">Total Earned</div></div>
+      <div class="stat-card"><div class="stat-card-num" id="s-direct-earned">$0</div><div class="stat-card-label">Direct Earned</div></div>
+      <div class="stat-card"><div class="stat-card-num" id="s-platform-earned">$0</div><div class="stat-card-label">Platform Earned</div></div>
+      <div class="stat-card"><div class="stat-card-num" id="s-avg">$0</div><div class="stat-card-label">Avg per Session</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Sessions per Week</div>
+        <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Paid vs Free</div>
+        <div class="chart-wrap"><canvas id="paidFreeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Direct vs Platform</div>
+        <div class="chart-wrap"><canvas id="sourceChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Earnings Over Time</div>
+        <div class="chart-wrap"><canvas id="earningsChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLATFORMS PAGE -->
+  <div class="page" id="page-platforms">
+    <div class="platforms-grid">
+      <div>
+        <div class="list-header"><div class="section-title">External Platforms</div></div>
+        <div id="platformsList"><div class="loading">Loading...</div></div>
+      </div>
+      <div>
+        <div class="form-panel">
+          <div class="form-panel-header"><div class="form-panel-title">Add Platform</div></div>
+          <div class="form-panel-body">
+            <div class="form-field"><label>Platform Name *</label><input type="text" id="p-name" placeholder="e.g. weplaytestgames"></div>
+            <div class="form-field"><label>Default Payment ($)</label><input type="number" id="p-pay" placeholder="5"></div>
+            <div class="form-field"><label>Link</label><input type="url" id="p-link" placeholder="https://..."></div>
+            <button class="btn-add" onclick="addPlatform()">Add Platform</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB + MOBILE PANEL -->
   <button class="fab" id="fab" onclick="toggleMobile()">+</button>
   <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobile()"></div>
   <div class="mobile-panel" id="mobilePanel">
@@ -280,13 +381,17 @@ const sb = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYm9wcWpkb3JvY2VoZnJteWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMjM2NzgsImV4cCI6MjA5MDg5OTY3OH0.4uDHKWd192C_q1XrOhQjWKKQVp1zTitMTotYctEdCss'
 );
 
+// STATE
 var playtests = [];
-var currentFilter = 'all';
+var extPlatforms = [];
+var filterPay = 'all';
+var filterSource = 'all';
 var undoTimers = {};
 var undoSecs = {};
 var isSignUp = false;
+var charts = {};
 
-// AUTH
+// ─── AUTH ───────────────────────────────────────────
 function toggleAuthMode() {
   isSignUp = !isSignUp;
   document.getElementById('authBtn').textContent = isSignUp ? 'Sign Up' : 'Sign In';
@@ -309,56 +414,106 @@ async function authAction() {
 
 function showErr(msg) {
   var el = document.getElementById('authError');
-  el.textContent = msg;
-  el.style.display = 'block';
+  el.textContent = msg; el.style.display = 'block';
 }
 
-async function signOut() {
-  await sb.auth.signOut();
-}
+async function signOut() { await sb.auth.signOut(); }
 
 sb.auth.onAuthStateChange(function(event, session) {
   if (session) {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    buildForms();
-    load();
+    init();
   } else {
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
   }
 });
 
-// DATA
-async function load() {
+// ─── INIT ────────────────────────────────────────────
+async function init() {
+  await Promise.all([loadPlaytests(), loadPlatforms()]);
+  buildForms();
+}
+
+// ─── DATA ────────────────────────────────────────────
+async function loadPlaytests() {
   var {data} = await sb.from('playtests').select('*').order('created_at', {ascending: false});
   playtests = data || [];
   render();
 }
 
-// FORM HTML
+async function loadPlatforms() {
+  var {data} = await sb.from('platforms').select('*').order('created_at', {ascending: true});
+  extPlatforms = data || [];
+  renderPlatforms();
+}
+
+// ─── NAVIGATION ──────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'stats') renderCharts();
+  if (name === 'platforms') renderPlatforms();
+}
+
+// ─── FORM ────────────────────────────────────────────
 function formHTML(p) {
-  return '<div class="form-field"><label>Game Name *</label><input type="text" id="'+p+'name" placeholder="e.g. OrbiTower"></div>' +
-    '<div class="form-row">' +
-    '<div class="form-field"><label>Genre</label><input type="text" id="'+p+'genre" placeholder="e.g. Tower Defense"></div>' +
-    '<div class="form-field"><label>Payment</label><select id="'+p+'pay" onchange="toggleF(\''+p+'\')"><option value="paid">Paid ($20)</option><option value="custom">Custom</option><option value="free">Free</option></select></div>' +
-    '</div>' +
-    '<div class="form-field" id="'+p+'amtWrap" style="display:none"><label>Amount ($)</label><input type="number" id="'+p+'amt" placeholder="25"></div>' +
-    '<div class="form-field"><label>Game Link</label><input type="url" id="'+p+'link" placeholder="https://..."></div>' +
-    '<div class="form-field"><label>Developer / Studio</label><input type="text" id="'+p+'dev" placeholder="e.g. Spicy Sushi Games"></div>' +
-    '<div class="form-field"><label>Notes</label><textarea id="'+p+'notes" placeholder="What to focus on, known issues..."></textarea></div>' +
-    '<div class="form-row">' +
-    '<div class="form-field"><label>Platform</label><select id="'+p+'plat" onchange="toggleF(\''+p+'\')"><option value="Web">Web</option><option value="Android">Android</option><option value="Standalone">Standalone</option></select></div>' +
-    '<div class="form-field" id="'+p+'osWrap" style="display:none"><label>OS</label><select id="'+p+'os"><option value="Linux">Linux</option><option value="Windows">Windows</option></select></div>' +
-    '</div>' +
-    '<div class="form-field"><label>Deadline</label><select id="'+p+'dead" onchange="toggleF(\''+p+'\')"><option value="48">48 hours</option><option value="24">24 hours</option><option value="72">72 hours</option><option value="custom">Custom</option></select></div>' +
-    '<div class="form-field" id="'+p+'hrsWrap" style="display:none"><label>Hours until deadline</label><input type="number" id="'+p+'hrs" placeholder="36"></div>' +
+  var platOptions = extPlatforms.map(function(pl) {
+    return '<option value="'+pl.id+'">'+esc(pl.name)+'</option>';
+  }).join('');
+
+  return '<div class="form-field"><label>Source</label><select id="'+p+'source" onchange="toggleFormSource(\''+p+'\')"><option value="direct">Direct (My Session)</option>'+(platOptions?'<optgroup label="External Platforms">'+platOptions+'</optgroup>':'')+'</select></div>'+
+    '<div id="'+p+'platInfo" style="display:none" class="form-field"><label>Platform</label><div id="'+p+'platLabel" style="font-size:11px;color:var(--ink-muted);padding:4px 0"></div></div>'+
+    '<div class="form-field"><label>Game Name *</label><input type="text" id="'+p+'name" placeholder="e.g. OrbiTower"></div>'+
+    '<div class="form-row">'+
+    '<div class="form-field"><label>Genre</label><input type="text" id="'+p+'genre" placeholder="e.g. Tower Defense"></div>'+
+    '<div class="form-field"><label>Payment</label><select id="'+p+'pay" onchange="toggleF(\''+p+'\')"><option value="paid">Paid</option><option value="custom">Custom</option><option value="free">Free</option></select></div>'+
+    '</div>'+
+    '<div class="form-field" id="'+p+'amtWrap"><label>Amount ($)</label><input type="number" id="'+p+'amt" placeholder="20" value="20"></div>'+
+    '<div class="form-field"><label>Game Link</label><input type="url" id="'+p+'link" placeholder="https://..."></div>'+
+    '<div class="form-field"><label>Developer / Studio</label><input type="text" id="'+p+'dev" placeholder="e.g. Spicy Sushi Games"></div>'+
+    '<div class="form-field"><label>Notes</label><textarea id="'+p+'notes" placeholder="What to focus on, known issues..."></textarea></div>'+
+    '<div class="form-row">'+
+    '<div class="form-field"><label>Platform</label><select id="'+p+'plat" onchange="toggleF(\''+p+'\')"><option value="Web">Web</option><option value="Android">Android</option><option value="Standalone" selected>Standalone</option></select></div>'+
+    '<div class="form-field" id="'+p+'osWrap"><label>OS</label><select id="'+p+'os"><option value="Linux" selected>Linux</option><option value="Windows">Windows</option></select></div>'+
+    '</div>'+
+    '<div class="form-field"><label>Deadline</label><select id="'+p+'dead" onchange="toggleF(\''+p+'\')"><option value="48" selected>48 hours</option><option value="24">24 hours</option><option value="72">72 hours</option><option value="custom">Custom</option></select></div>'+
+    '<div class="form-field" id="'+p+'hrsWrap" style="display:none"><label>Hours until deadline</label><input type="number" id="'+p+'hrs" placeholder="36"></div>'+
+    '<div class="form-check"><input type="checkbox" id="'+p+'waiting"><label for="'+p+'waiting">Waiting for game (don\'t start timer yet)</label></div>'+
     '<button class="btn-add" onclick="addPlaytest(\''+p+'\')">Add Playtest</button>';
 }
 
 function buildForms() {
   document.getElementById('desktopForm').innerHTML = formHTML('d_');
   document.getElementById('mobileForm').innerHTML = formHTML('m_');
+  // Set defaults
+  ['d_','m_'].forEach(function(p) { toggleF(p); toggleFormSource(p); });
+}
+
+function toggleFormSource(p) {
+  var sel = document.getElementById(p+'source');
+  if (!sel) return;
+  var val = sel.value;
+  var isDirect = val === 'direct';
+  var platInfo = document.getElementById(p+'platInfo');
+  if (platInfo) platInfo.style.display = isDirect ? 'none' : 'block';
+
+  if (!isDirect) {
+    var pl = extPlatforms.find(function(x){return x.id===val;});
+    if (pl) {
+      var lbl = document.getElementById(p+'platLabel');
+      if (lbl) lbl.textContent = pl.name + (pl.link?' — '+pl.link:'');
+      // Set default payment
+      var amtEl = document.getElementById(p+'amt');
+      if (amtEl) amtEl.value = pl.default_payment || 5;
+      var payEl = document.getElementById(p+'pay');
+      if (payEl) payEl.value = 'paid';
+      toggleF(p);
+    }
+  }
 }
 
 function toggleF(p) {
@@ -368,331 +523,383 @@ function toggleF(p) {
   var aw = document.getElementById(p+'amtWrap');
   var hw = document.getElementById(p+'hrsWrap');
   var ow = document.getElementById(p+'osWrap');
-  if(aw) aw.style.display = pay&&pay.value==='custom'?'flex':'none';
-  if(hw) hw.style.display = dead&&dead.value==='custom'?'flex':'none';
-  if(ow) ow.style.display = plat&&plat.value==='Standalone'?'flex':'none';
+  if (aw) aw.style.display = (pay&&pay.value==='free')?'none':'flex';
+  if (hw) hw.style.display = (dead&&dead.value==='custom')?'flex':'none';
+  if (ow) ow.style.display = (plat&&plat.value==='Standalone')?'flex':'none';
 }
 
-function g(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function g(id) { var el=document.getElementById(id); return el?el.value.trim():''; }
 
 async function addPlaytest(p) {
   var name = g(p+'name');
   if (!name) { alert('Game name is required.'); return; }
+
+  var sourceVal = g(p+'source');
+  var source = sourceVal==='direct' ? 'direct' : 'platform';
+  var platformId = source==='platform' ? sourceVal : null;
+
   var payType = g(p+'pay');
-  var amount = payType==='paid' ? 20 : payType==='custom' ? (parseFloat(g(p+'amt'))||0) : 0;
+  var amount = payType==='free' ? 0 : (parseFloat(g(p+'amt'))||20);
   var deadSel = g(p+'dead');
   var hours = deadSel==='custom' ? (parseInt(g(p+'hrs'))||48) : parseInt(deadSel);
   var platform = g(p+'plat');
   var platOs = platform==='Standalone' ? g(p+'os') : null;
-  var waitingEl = document.getElementById(p+'waiting');
-  var waiting = waitingEl ? waitingEl.checked : false;
-  var deadline = waiting ? null : new Date(Date.now() + hours*3600000).toISOString();
-  var {data: ud} = await sb.auth.getUser();
+  var waitEl = document.getElementById(p+'waiting');
+  var waiting = waitEl ? waitEl.checked : false;
+  var deadline = waiting ? null : new Date(Date.now()+hours*3600000).toISOString();
+
+  var {data:ud} = await sb.auth.getUser();
   var rec = {
-    user_id: ud.user.id,
-    name, genre: g(p+'genre'), dev: g(p+'dev'), link: g(p+'link'),
-    "desc": g(p+'notes'), payment: payType, amount, platform, platform_os: platOs,
-    timer_started: !waiting, timer_paused: false, paused_remaining: null,
-    deadline, total_hours: hours, completed: false, expanded: true
+    user_id: ud.user.id, name, genre: g(p+'genre'), dev: g(p+'dev'),
+    link: g(p+'link'), "desc": g(p+'notes'), payment: payType, amount,
+    platform, platform_os: platOs, deadline, total_hours: hours,
+    completed: false, expanded: true, source,
+    timer_started: !waiting, timer_paused: false, paused_remaining: null
   };
+
+  // store platform reference in desc if from external platform
+  if (platformId) {
+    var pl = extPlatforms.find(function(x){return x.id===platformId;});
+    if (pl) rec.dev = rec.dev || pl.name;
+  }
+
   var {data, error} = await sb.from('playtests').insert(rec).select().single();
   if (!error) { playtests.unshift(data); render(); clearF(p); if(p==='m_') closeMobile(); }
 }
 
 function clearF(p) {
-  ['name','genre','dev','link','notes','amt','hrs'].forEach(function(f) {
-    var el = document.getElementById(p+f); if(el) el.value='';
+  ['name','genre','dev','link','notes','amt','hrs'].forEach(function(f){
+    var el=document.getElementById(p+f); if(el) el.value='';
   });
-  var pay = document.getElementById(p+'pay'); if(pay) pay.value='paid';
-  var dead = document.getElementById(p+'dead'); if(dead) dead.value='48';
-  var plat = document.getElementById(p+'plat'); if(plat) plat.value='Web';
-  var w = document.getElementById(p+'waiting'); if(w) w.checked=false;
-  toggleF(p);
+  var pay=document.getElementById(p+'pay'); if(pay) pay.value='paid';
+  var dead=document.getElementById(p+'dead'); if(dead) dead.value='48';
+  var plat=document.getElementById(p+'plat'); if(plat) plat.value='Standalone';
+  var src=document.getElementById(p+'source'); if(src) src.value='direct';
+  var wait=document.getElementById(p+'waiting'); if(wait) wait.checked=false;
+  var amt=document.getElementById(p+'amt'); if(amt) amt.value='20';
+  toggleF(p); toggleFormSource(p);
 }
 
-// ACTIONS
+// ─── PLATFORMS ───────────────────────────────────────
+async function addPlatform() {
+  var name = document.getElementById('p-name').value.trim();
+  if (!name) { alert('Platform name is required.'); return; }
+  var pay = parseFloat(document.getElementById('p-pay').value)||5;
+  var link = document.getElementById('p-link').value.trim();
+  var {data:ud} = await sb.auth.getUser();
+  var {data,error} = await sb.from('platforms').insert({user_id:ud.user.id,name,default_payment:pay,link}).select().single();
+  if (!error) {
+    extPlatforms.push(data);
+    renderPlatforms();
+    buildForms();
+    document.getElementById('p-name').value='';
+    document.getElementById('p-pay').value='';
+    document.getElementById('p-link').value='';
+  }
+}
+
+async function deletePlatform(id) {
+  if (!confirm('Delete this platform?')) return;
+  await sb.from('platforms').delete().eq('id',id);
+  extPlatforms = extPlatforms.filter(function(x){return x.id!==id;});
+  renderPlatforms();
+  buildForms();
+}
+
+function renderPlatforms() {
+  var el = document.getElementById('platformsList');
+  if (!el) return;
+  if (extPlatforms.length===0) {
+    el.innerHTML='<div class="empty-state">No external platforms added yet.<br>Add one using the form.</div>';
+    return;
+  }
+  el.innerHTML = extPlatforms.map(function(pl) {
+    return '<div class="platform-card">'+
+      '<div class="platform-card-left">'+
+      '<div class="platform-name">'+esc(pl.name)+'</div>'+
+      '<div class="platform-meta">Default: $'+pl.default_payment+(pl.link?' &middot; <a href="'+esc(pl.link)+'" target="_blank">'+esc(pl.link)+'</a>':'')+'</div>'+
+      '</div>'+
+      '<div class="platform-actions"><button class="btn btn-delete" onclick="deletePlatform(\''+pl.id+'\')">Delete</button></div>'+
+      '</div>';
+  }).join('');
+}
+
+// ─── ACTIONS ─────────────────────────────────────────
 async function toggleExpand(id) {
   var pt = playtests.find(function(x){return x.id===id;});
   if (!pt) return;
   pt.expanded = !pt.expanded;
   var cardEl = document.getElementById('card-'+id);
-  if (cardEl) {
-    cardEl.classList.toggle('expanded', pt.expanded);
-  }
-  await sb.from('playtests').update({expanded: pt.expanded}).eq('id', id);
+  if (cardEl) cardEl.classList.toggle('expanded', pt.expanded);
+  await sb.from('playtests').update({expanded:pt.expanded}).eq('id',id);
 }
 
 async function completePlaytest(id) {
   var now = new Date().toISOString();
-  await sb.from('playtests').update({completed:true, completed_at:now, expanded:false}).eq('id',id);
+  await sb.from('playtests').update({completed:true,completed_at:now,expanded:false}).eq('id',id);
   var pt = playtests.find(function(x){return x.id===id;});
   if (pt) { pt.completed=true; pt.completed_at=now; pt.expanded=false; pt.pendingUndo=true; }
   render();
-
-  undoSecs[id] = 300;
+  undoSecs[id]=300;
   updateCountdown(id);
-  undoTimers[id] = setInterval(function() {
+  undoTimers[id]=setInterval(function(){
     undoSecs[id]--;
     updateCountdown(id);
-    if (undoSecs[id] <= 0) {
-      clearInterval(undoTimers[id]);
-      delete undoTimers[id];
-      delete undoSecs[id];
-      var item = playtests.find(function(x){return x.id===id;});
-      if (item) { item.pendingUndo=false; render(); }
+    if(undoSecs[id]<=0){
+      clearInterval(undoTimers[id]); delete undoTimers[id]; delete undoSecs[id];
+      var item=playtests.find(function(x){return x.id===id;});
+      if(item){item.pendingUndo=false; render();}
     }
-  }, 1000);
+  },1000);
 }
 
 function updateCountdown(id) {
-  var el = document.getElementById('undo-cd-'+id);
-  if (!el) return;
-  var s = undoSecs[id]||0;
-  el.textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  var el=document.getElementById('undo-cd-'+id);
+  if(!el) return;
+  var s=undoSecs[id]||0;
+  el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 }
 
 async function undoComplete(id) {
-  clearInterval(undoTimers[id]);
-  delete undoTimers[id]; delete undoSecs[id];
-  await sb.from('playtests').update({completed:false, completed_at:null, expanded:true}).eq('id',id);
-  var pt = playtests.find(function(x){return x.id===id;});
-  if (pt) { pt.completed=false; pt.completed_at=null; pt.pendingUndo=false; pt.expanded=true; }
+  clearInterval(undoTimers[id]); delete undoTimers[id]; delete undoSecs[id];
+  await sb.from('playtests').update({completed:false,completed_at:null,expanded:true}).eq('id',id);
+  var pt=playtests.find(function(x){return x.id===id;});
+  if(pt){pt.completed=false;pt.completed_at=null;pt.pendingUndo=false;pt.expanded=true;}
   render();
 }
 
 async function deletePlaytest(id) {
-  if (!confirm('Delete this playtest?')) return;
+  if(!confirm('Delete this playtest?')) return;
   await sb.from('playtests').delete().eq('id',id);
-  playtests = playtests.filter(function(x){return x.id!==id;});
+  playtests=playtests.filter(function(x){return x.id!==id;});
   render();
 }
 
 function toggleEdit(id) {
-  var el = document.getElementById('edit-'+id);
-  if (el) el.classList.toggle('open');
+  var el=document.getElementById('edit-'+id);
+  if(el) el.classList.toggle('open');
 }
 
 function toggleEditOs(id) {
-  var sel = document.getElementById('ep-'+id);
-  var wrap = document.getElementById('eo-wrap-'+id);
-  if (wrap) wrap.style.display = sel&&sel.value==='Standalone'?'flex':'none';
+  var sel=document.getElementById('ep-'+id);
+  var wrap=document.getElementById('eo-wrap-'+id);
+  if(wrap) wrap.style.display=sel&&sel.value==='Standalone'?'flex':'none';
 }
 
 async function saveEdit(id) {
-  var pt = playtests.find(function(x){return x.id===id;});
-  if (!pt) return;
-  var payType = document.getElementById('epay-'+id).value;
-  var amount = payType==='paid'?20:payType==='custom'?(parseFloat(document.getElementById('eamt-'+id).value)||0):0;
-  var platform = document.getElementById('ep-'+id).value;
-  var platOs = platform==='Standalone'?document.getElementById('eos-'+id).value:null;
-  var updates = {
-    name: document.getElementById('en-'+id).value.trim()||pt.name,
-    genre: document.getElementById('eg-'+id).value.trim(),
-    dev: document.getElementById('ed-'+id).value.trim(),
-    link: document.getElementById('el-'+id).value.trim(),
-    "desc": document.getElementById('edesc-'+id).value.trim(),
-    payment: payType, amount, platform, platform_os: platOs
+  var pt=playtests.find(function(x){return x.id===id;});
+  if(!pt) return;
+  var payType=document.getElementById('epay-'+id).value;
+  var amount=payType==='free'?0:(parseFloat(document.getElementById('eamt-'+id).value)||0);
+  var platform=document.getElementById('ep-'+id).value;
+  var platOs=platform==='Standalone'?document.getElementById('eos-'+id).value:null;
+  var updates={
+    name:document.getElementById('en-'+id).value.trim()||pt.name,
+    genre:document.getElementById('eg-'+id).value.trim(),
+    dev:document.getElementById('ed-'+id).value.trim(),
+    link:document.getElementById('el-'+id).value.trim(),
+    "desc":document.getElementById('edesc-'+id).value.trim(),
+    payment:payType, amount, platform, platform_os:platOs
   };
   await sb.from('playtests').update(updates).eq('id',id);
-  Object.assign(pt, updates);
+  Object.assign(pt,updates);
   render();
-}
-
-// MOBILE
-function toggleMobile() {
-  var open = document.getElementById('mobilePanel').classList.contains('open');
-  document.getElementById('fab').classList.toggle('open');
-  document.getElementById('mobileOverlay').classList.toggle('open');
-  document.getElementById('mobilePanel').classList.toggle('open');
-  document.body.style.overscrollBehaviorY = open ? '' : 'none';
-}
-function closeMobile() {
-  document.getElementById('fab').classList.remove('open');
-  document.getElementById('mobileOverlay').classList.remove('open');
-  document.getElementById('mobilePanel').classList.remove('open');
-  document.body.style.overscrollBehaviorY = '';
-}
-
-// Swipe down to close mobile panel
-(function() {
-  var startY = 0;
-  var isDragging = false;
-  var panel;
-
-  document.addEventListener('DOMContentLoaded', function() {
-    panel = document.getElementById('mobilePanel');
-    if (!panel) return;
-
-    panel.addEventListener('touchstart', function(e) {
-      startY = e.touches[0].clientY;
-      isDragging = panel.scrollTop === 0;
-    }, {passive: true});
-
-    panel.addEventListener('touchmove', function(e) {
-      if (!isDragging) return;
-      var deltaY = e.touches[0].clientY - startY;
-      if (deltaY > 0) {
-        panel.style.transform = 'translateY(' + deltaY + 'px)';
-        panel.style.transition = 'none';
-      } else {
-        isDragging = false;
-        panel.style.transform = '';
-      }
-    }, {passive: true});
-
-    panel.addEventListener('touchend', function(e) {
-      if (!isDragging) return;
-      isDragging = false;
-      panel.style.transition = '';
-      var deltaY = e.changedTouches[0].clientY - startY;
-      if (deltaY > 80) {
-        panel.style.transform = '';
-        closeMobile();
-      } else {
-        panel.style.transform = '';
-      }
-    }, {passive: true});
-  });
-})();
-
-// FILTER
-function setFilter(f, el) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
-  el.classList.add('active');
-  render();
-}
-
-function toggleCompleted() {
-  var el = document.getElementById('completedSection');
-  var arrow = document.getElementById('completedArrow');
-  var open = el.style.display !== 'none';
-  el.style.display = open ? 'none' : 'block';
-  arrow.innerHTML = open ? '&#9654;' : '&#9660;';
-}
-
-// TIMER
-function fmtTimer(pt) {
-  if (!pt.timer_started || !pt.deadline) return {text:'WAITING', cls:'waiting', pct:100};
-  if (pt.timer_paused && pt.paused_remaining != null) {
-    var ms = pt.paused_remaining;
-    var totalMs = (pt.total_hours||48)*3600000;
-    if (ms<=0) return {text:'OVERDUE', cls:'danger', pct:0};
-    var h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
-    return {text:pad(h)+':'+pad(m)+':'+pad(s)+' (paused)', cls:'paused', pct:Math.min(100,(ms/totalMs)*100)};
-  }
-  var ms = new Date(pt.deadline) - Date.now();
-  var totalMs = (pt.total_hours||48)*3600000;
-  if (ms<=0) return {text:'OVERDUE', cls:'danger', pct:0};
-  var h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
-  var cls = h<4?'danger':h<12?'warning':'';
-  return {text:pad(h)+':'+pad(m)+':'+pad(s), cls, pct:Math.min(100,(ms/totalMs)*100)};
-}
-
-
-function pad(n) { return String(n).padStart(2,'0'); }
-
-function esc(s) {
-  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function platBadge(pt) {
-  if (!pt.platform) return '';
-  var label = pt.platform + (pt.platform==='Standalone'&&pt.platform_os?' / '+pt.platform_os:'');
-  return '<span class="badge badge-info">'+label+'</span>';
-}
-
-// RENDER CARD
-function card(pt) {
-  var payLabel = pt.payment==='free'?'Free':'$'+pt.amount;
-  var bCls = pt.payment==='free'?'badge-free':'badge-paid';
-  var expCls = pt.expanded?'expanded':'';
-  var compCls = pt.completed?'completed':'';
-
-  var undoBanner = pt.pendingUndo
-    ? '<div class="undo-banner"><span>Marked complete. <span class="undo-countdown" id="undo-cd-'+pt.id+'">5:00</span></span><button class="undo-btn" onclick="undoComplete(\''+pt.id+'\')">Undo</button></div>'
-    : '';
-
-  var detail = '<div class="card-detail">'+undoBanner;
-
-  if (!pt.completed) {
-    var t = fmtTimer(pt);
-    var bc = t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':t.cls==='waiting'||t.cls==='paused'?'#e67e22':'#2d5a3d';
-    detail += '<div class="card-body">' +
-      (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'') +
-      (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'') +
-      (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'') +
-      '<div class="card-timer-wrap"><div class="timer-info"><div class="timer-label">Time Remaining</div><div class="timer-display '+t.cls+'" id="tmr-'+pt.id+'">'+t.text+'</div></div><div class="timer-bar-wrap"><div class="timer-bar" id="bar-'+pt.id+'" style="width:'+t.pct+'%;background:'+bc+'"></div></div></div>' +
-      '</div>' +
-      '<div class="card-edit" id="edit-'+pt.id+'"><div class="edit-grid">' +
-      '<div class="edit-field"><label>Game Name</label><input id="en-'+pt.id+'" value="'+esc(pt.name)+'"></div>' +
-      '<div class="edit-field"><label>Genre</label><input id="eg-'+pt.id+'" value="'+esc(pt.genre)+'"></div>' +
-      '<div class="edit-field"><label>Developer</label><input id="ed-'+pt.id+'" value="'+esc(pt.dev)+'"></div>' +
-      '<div class="edit-field"><label>Payment</label><select id="epay-'+pt.id+'"><option value="paid"'+(pt.payment==='paid'?' selected':'')+'>Paid ($20)</option><option value="custom"'+(pt.payment==='custom'?' selected':'')+'>Custom</option><option value="free"'+(pt.payment==='free'?' selected':'')+'>Free</option></select></div>' +
-      '<div class="edit-field"><label>Custom $</label><input id="eamt-'+pt.id+'" type="number" value="'+(pt.amount||'')+'"></div>' +
-      '<div class="edit-field"><label>Platform</label><select id="ep-'+pt.id+'" onchange="toggleEditOs(\''+pt.id+'\')"><option value="Web"'+(pt.platform==='Web'?' selected':'')+'>Web</option><option value="Android"'+(pt.platform==='Android'?' selected':'')+'>Android</option><option value="Standalone"'+(pt.platform==='Standalone'?' selected':'')+'>Standalone</option></select></div>' +
-      '<div class="edit-field" id="eo-wrap-'+pt.id+'" style="display:'+(pt.platform==='Standalone'?'flex':'none')+'"><label>OS</label><select id="eos-'+pt.id+'"><option value="Linux"'+(pt.platform_os==='Linux'?' selected':'')+'>Linux</option><option value="Windows"'+(pt.platform_os==='Windows'?' selected':'')+'>Windows</option></select></div>' +
-      '<div class="edit-field edit-field-full"><label>Link</label><input id="el-'+pt.id+'" value="'+esc(pt.link)+'"></div>' +
-      '<div class="edit-field edit-field-full"><label>Notes</label><textarea id="edesc-'+pt.id+'">'+esc(pt["desc"])+'</textarea></div>' +
-      '</div><div class="edit-actions"><button class="btn btn-save" onclick="saveEdit(\''+pt.id+'\')">Save</button><button class="btn btn-cancel" onclick="toggleEdit(\''+pt.id+'\')">Cancel</button></div></div>' +
-      '<div class="card-footer">'+((!pt.timer_started)?'<button class="btn btn-complete" onclick="startTimer(\''+pt.id+'\')" style="background:#e67e22;border-color:#e67e22">Start Timer</button>':'')+(pt.timer_started?'<button class="btn btn-edit" onclick="pauseTimer(\''+pt.id+'\')">'+(pt.timer_paused?'Resume Timer':'Pause Timer')+'</button>':'')+'<button class="btn btn-complete" onclick="completePlaytest(\''+pt.id+'\')">Mark Complete</button><button class="btn btn-edit" onclick="toggleEdit(\''+pt.id+'\')">Edit</button><button class="btn btn-delete" onclick="deletePlaytest(\''+pt.id+'\')">Delete</button></div>';
-  } else {
-    detail += '<div class="card-body">' +
-      (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'') +
-      (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'') +
-      (pt.completed_at?'<div class="card-field"><label>Completed</label><p>'+new Date(pt.completed_at).toLocaleDateString()+'</p></div>':'') +
-      (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'') +
-      '</div>' +
-      '<div class="card-footer">'+(pt.pendingUndo?'<button class="btn btn-edit" onclick="undoComplete(\''+pt.id+'\')">Undo Complete</button>':'')+'<button class="btn btn-delete" onclick="deletePlaytest(\''+pt.id+'\')">Delete</button></div>';
-  }
-
-  detail += '</div>';
-
-  return '<div class="playtest-card '+expCls+' '+compCls+'" id="card-'+pt.id+'">' +
-    '<div class="card-summary" onclick="toggleExpand(\''+pt.id+'\')">'+
-    '<div class="card-summary-left"><span class="card-chevron">&#9654;</span><span class="card-game-name">'+esc(pt.name)+'</span></div>'+
-    '<div class="card-summary-right">'+platBadge(pt)+(pt.genre?'<span class="badge badge-info">'+esc(pt.genre)+'</span>':'')+
-    '<span class="badge '+bCls+'">'+payLabel+'</span>'+(pt.completed?'<span class="badge badge-done">Done</span>':'')+
-    '</div></div>'+detail+'</div>';
 }
 
 async function startTimer(id) {
-  var pt = playtests.find(function(x){return x.id===id;});
-  if (!pt) return;
-  var deadline = new Date(Date.now() + (pt.total_hours||48)*3600000).toISOString();
-  await sb.from('playtests').update({timer_started:true, deadline:deadline, timer_paused:false}).eq('id',id);
+  var pt=playtests.find(function(x){return x.id===id;});
+  if(!pt) return;
+  var deadline=new Date(Date.now()+(pt.total_hours||48)*3600000).toISOString();
+  await sb.from('playtests').update({timer_started:true,deadline,timer_paused:false}).eq('id',id);
   pt.timer_started=true; pt.deadline=deadline; pt.timer_paused=false;
   render();
 }
 
 async function pauseTimer(id) {
-  var pt = playtests.find(function(x){return x.id===id;});
-  if (!pt) return;
-  if (pt.timer_paused) {
-    // Resume: recalculate deadline from remaining
-    var deadline = new Date(Date.now() + (pt.paused_remaining||0)).toISOString();
-    await sb.from('playtests').update({timer_paused:false, deadline:deadline, paused_remaining:null}).eq('id',id);
+  var pt=playtests.find(function(x){return x.id===id;});
+  if(!pt) return;
+  if(pt.timer_paused) {
+    var deadline=new Date(Date.now()+(pt.paused_remaining||0)).toISOString();
+    await sb.from('playtests').update({timer_paused:false,deadline,paused_remaining:null}).eq('id',id);
     pt.timer_paused=false; pt.deadline=deadline; pt.paused_remaining=null;
   } else {
-    // Pause: save remaining ms
-    var remaining = new Date(pt.deadline) - Date.now();
-    await sb.from('playtests').update({timer_paused:true, paused_remaining:remaining}).eq('id',id);
+    var remaining=new Date(pt.deadline)-Date.now();
+    await sb.from('playtests').update({timer_paused:true,paused_remaining:remaining}).eq('id',id);
     pt.timer_paused=true; pt.paused_remaining=remaining;
   }
   render();
 }
 
-function render() {
-  var filtered = function(list) {
-    return list.filter(function(pt) {
-      if (currentFilter==='paid') return pt.payment!=='free';
-      if (currentFilter==='free') return pt.payment==='free';
-      return true;
-    });
-  };
+// ─── MOBILE ──────────────────────────────────────────
+function toggleMobile() {
+  var open=document.getElementById('mobilePanel').classList.contains('open');
+  document.getElementById('fab').classList.toggle('open');
+  document.getElementById('mobileOverlay').classList.toggle('open');
+  document.getElementById('mobilePanel').classList.toggle('open');
+  document.body.style.overscrollBehaviorY=open?'':'none';
+}
+function closeMobile() {
+  document.getElementById('fab').classList.remove('open');
+  document.getElementById('mobileOverlay').classList.remove('open');
+  document.getElementById('mobilePanel').classList.remove('open');
+  document.body.style.overscrollBehaviorY='';
+}
 
-  var active = filtered(playtests.filter(function(pt){return !pt.completed;}));
-  var completed = filtered(playtests.filter(function(pt){return pt.completed;}));
+// Swipe to close
+(function(){
+  var startY=0, isDragging=false, panel;
+  document.addEventListener('DOMContentLoaded',function(){
+    panel=document.getElementById('mobilePanel');
+    if(!panel) return;
+    panel.addEventListener('touchstart',function(e){
+      startY=e.touches[0].clientY;
+      isDragging=panel.scrollTop===0;
+    },{passive:true});
+    panel.addEventListener('touchmove',function(e){
+      if(!isDragging) return;
+      var dy=e.touches[0].clientY-startY;
+      if(dy>0){panel.style.transform='translateY('+dy+'px)';panel.style.transition='none';}
+      else{isDragging=false;panel.style.transform='';}
+    },{passive:true});
+    panel.addEventListener('touchend',function(e){
+      if(!isDragging) return;
+      isDragging=false; panel.style.transition='';
+      var dy=e.changedTouches[0].clientY-startY;
+      if(dy>80){panel.style.transform='';closeMobile();}
+      else{panel.style.transform='';}
+    },{passive:true});
+  });
+})();
+
+// ─── FILTERS ─────────────────────────────────────────
+function setFilter(type, val, el) {
+  if(type==='pay') filterPay=val;
+  if(type==='source') filterSource=val;
+  var group=type==='pay'?'payFilter':'sourceFilter';
+  document.getElementById(group).querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  render();
+}
+
+function toggleCompleted() {
+  var el=document.getElementById('completedSection');
+  var arrow=document.getElementById('completedArrow');
+  var open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  arrow.innerHTML=open?'&#9654;':'&#9660;';
+}
+
+// ─── TIMER ───────────────────────────────────────────
+function fmtTimer(pt) {
+  if(!pt.timer_started||!pt.deadline) return{text:'WAITING FOR GAME',cls:'waiting',pct:100};
+  if(pt.timer_paused&&pt.paused_remaining!=null){
+    var ms=pt.paused_remaining, totalMs=(pt.total_hours||48)*3600000;
+    if(ms<=0) return{text:'OVERDUE',cls:'danger',pct:0};
+    return{text:pad(Math.floor(ms/3600000))+':'+pad(Math.floor((ms%3600000)/60000))+':'+pad(Math.floor((ms%60000)/1000))+' (paused)',cls:'paused',pct:Math.min(100,(ms/totalMs)*100)};
+  }
+  var ms=new Date(pt.deadline)-Date.now(), totalMs=(pt.total_hours||48)*3600000;
+  if(ms<=0) return{text:'OVERDUE',cls:'danger',pct:0};
+  var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);
+  var cls=h<4?'danger':h<12?'warning':'';
+  return{text:pad(h)+':'+pad(m)+':'+pad(s),cls,pct:Math.min(100,(ms/totalMs)*100)};
+}
+
+function pad(n){return String(n).padStart(2,'0');}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function platBadge(pt) {
+  if(!pt.platform) return '';
+  var label=pt.platform+(pt.platform==='Standalone'&&pt.platform_os?' / '+pt.platform_os:'');
+  return '<span class="badge badge-info">'+label+'</span>';
+}
+
+function sourceBadge(pt) {
+  if(pt.source==='platform') return '<span class="badge badge-platform-ext">Platform</span>';
+  return '<span class="badge badge-info">Direct</span>';
+}
+
+// ─── CARD ────────────────────────────────────────────
+function card(pt) {
+  var payLabel=pt.payment==='free'?'Free':'$'+pt.amount;
+  var bCls=pt.payment==='free'?'badge-free':'badge-paid';
+  var expCls=pt.expanded?'expanded':'';
+  var compCls=pt.completed?'completed':'';
+
+  var undoBanner=pt.pendingUndo
+    ?'<div class="undo-banner"><span>Marked complete. <span class="undo-countdown" id="undo-cd-'+pt.id+'">5:00</span></span><button class="undo-btn" onclick="undoComplete(\''+pt.id+'\')">Undo</button></div>'
+    :'';
+
+  var detail='<div class="card-detail">'+undoBanner;
+
+  if(!pt.completed){
+    var t=fmtTimer(pt);
+    var bc=t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d';
+
+    detail+='<div class="card-body">'+
+      (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'')+
+      (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'')+
+      (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'')+
+      '<div class="card-timer-wrap">'+
+      '<div class="timer-info"><div class="timer-label">Time Remaining</div><div class="timer-display '+t.cls+'" id="tmr-'+pt.id+'">'+t.text+'</div></div>'+
+      '<div class="timer-bar-wrap"><div class="timer-bar" id="bar-'+pt.id+'" style="width:'+t.pct+'%;background:'+bc+'"></div></div>'+
+      '</div>'+
+      '</div>'+
+      '<div class="card-edit" id="edit-'+pt.id+'"><div class="edit-grid">'+
+      '<div class="edit-field"><label>Game Name</label><input id="en-'+pt.id+'" value="'+esc(pt.name)+'"></div>'+
+      '<div class="edit-field"><label>Genre</label><input id="eg-'+pt.id+'" value="'+esc(pt.genre)+'"></div>'+
+      '<div class="edit-field"><label>Developer</label><input id="ed-'+pt.id+'" value="'+esc(pt.dev)+'"></div>'+
+      '<div class="edit-field"><label>Payment</label><select id="epay-'+pt.id+'"><option value="paid"'+(pt.payment==='paid'?' selected':'')+'>Paid</option><option value="custom"'+(pt.payment==='custom'?' selected':'')+'>Custom</option><option value="free"'+(pt.payment==='free'?' selected':'')+'>Free</option></select></div>'+
+      '<div class="edit-field"><label>Amount ($)</label><input id="eamt-'+pt.id+'" type="number" value="'+(pt.amount||'')+'"></div>'+
+      '<div class="edit-field"><label>Platform</label><select id="ep-'+pt.id+'" onchange="toggleEditOs(\''+pt.id+'\')"><option value="Web"'+(pt.platform==='Web'?' selected':'')+'>Web</option><option value="Android"'+(pt.platform==='Android'?' selected':'')+'>Android</option><option value="Standalone"'+(pt.platform==='Standalone'?' selected':'')+'>Standalone</option></select></div>'+
+      '<div class="edit-field" id="eo-wrap-'+pt.id+'" style="display:'+(pt.platform==='Standalone'?'flex':'none')+'"><label>OS</label><select id="eos-'+pt.id+'"><option value="Linux"'+(pt.platform_os==='Linux'?' selected':'')+'>Linux</option><option value="Windows"'+(pt.platform_os==='Windows'?' selected':'')+'>Windows</option></select></div>'+
+      '<div class="edit-field edit-field-full"><label>Link</label><input id="el-'+pt.id+'" value="'+esc(pt.link)+'"></div>'+
+      '<div class="edit-field edit-field-full"><label>Notes</label><textarea id="edesc-'+pt.id+'">'+esc(pt["desc"])+'</textarea></div>'+
+      '</div><div class="edit-actions"><button class="btn btn-save" onclick="saveEdit(\''+pt.id+'\')">Save</button><button class="btn btn-cancel" onclick="toggleEdit(\''+pt.id+'\')">Cancel</button></div></div>'+
+      '<div class="card-footer">'+
+      (!pt.timer_started?'<button class="btn btn-start" onclick="startTimer(\''+pt.id+'\')">Start Timer</button>':'')+
+      (pt.timer_started?'<button class="btn btn-pause" onclick="pauseTimer(\''+pt.id+'\')">'+(pt.timer_paused?'Resume':'Pause')+'</button>':'')+
+      '<button class="btn btn-complete" onclick="completePlaytest(\''+pt.id+'\')">Mark Complete</button>'+
+      '<button class="btn btn-edit" onclick="toggleEdit(\''+pt.id+'\')">Edit</button>'+
+      '<button class="btn btn-delete" onclick="deletePlaytest(\''+pt.id+'\')">Delete</button>'+
+      '</div>';
+  } else {
+    detail+='<div class="card-body">'+
+      (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'')+
+      (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'')+
+      (pt.completed_at?'<div class="card-field"><label>Completed</label><p>'+new Date(pt.completed_at).toLocaleDateString()+'</p></div>':'')+
+      (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'')+
+      '</div>'+
+      '<div class="card-footer">'+
+      (pt.pendingUndo?'<button class="btn btn-edit" onclick="undoComplete(\''+pt.id+'\')">Undo Complete</button>':'')+
+      '<button class="btn btn-delete" onclick="deletePlaytest(\''+pt.id+'\')">Delete</button>'+
+      '</div>';
+  }
+
+  detail+='</div>';
+
+  return '<div class="playtest-card '+expCls+' '+compCls+'" id="card-'+pt.id+'">'+
+    '<div class="card-summary" onclick="toggleExpand(\''+pt.id+'\')">'+
+    '<div class="card-summary-left"><span class="card-chevron">&#9654;</span><span class="card-game-name">'+esc(pt.name)+'</span></div>'+
+    '<div class="card-summary-right">'+
+    sourceBadge(pt)+platBadge(pt)+
+    (pt.genre?'<span class="badge badge-info">'+esc(pt.genre)+'</span>':'')+
+    '<span class="badge '+bCls+'">'+payLabel+'</span>'+
+    (pt.completed?'<span class="badge badge-done">Done</span>':'')+
+    '</div></div>'+detail+'</div>';
+}
+
+// ─── RENDER ──────────────────────────────────────────
+function applyFilters(list) {
+  return list.filter(function(pt) {
+    var payOk = filterPay==='all' || (filterPay==='paid'&&pt.payment!=='free') || (filterPay==='free'&&pt.payment==='free');
+    var srcOk = filterSource==='all' || pt.source===filterSource;
+    return payOk && srcOk;
+  });
+}
+
+function render() {
+  var active = applyFilters(playtests.filter(function(pt){return !pt.completed;}));
+  var completed = applyFilters(playtests.filter(function(pt){return pt.completed;}));
 
   document.getElementById('activeList').innerHTML = active.length===0
     ? '<div class="empty-state">No active playtests.<br>Add one using the form.</div>'
@@ -707,29 +914,106 @@ function render() {
   document.getElementById('hDone').textContent = allDone.length;
   document.getElementById('hEarned').textContent = '$'+earned;
 
-  // restore undo countdowns
   playtests.filter(function(pt){return pt.pendingUndo;}).forEach(function(pt){
-    if (undoSecs[pt.id]!==undefined) updateCountdown(pt.id);
+    if(undoSecs[pt.id]!==undefined) updateCountdown(pt.id);
   });
 }
 
-// LIVE TIMERS
-setInterval(function() {
-  playtests.filter(function(pt){return !pt.completed;}).forEach(function(pt) {
-    var tel = document.getElementById('tmr-'+pt.id);
-    var bel = document.getElementById('bar-'+pt.id);
-    if (!tel) return;
-    if (pt.timer_paused || !pt.timer_started) return;
-      var t = fmtTimer(pt);
-    tel.textContent = t.text;
-    tel.className = 'timer-display '+t.cls;
-    if (bel) { bel.style.width=t.pct+'%'; bel.style.background=t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d'; }
+// ─── CHARTS ──────────────────────────────────────────
+function renderCharts() {
+  var done = playtests.filter(function(pt){return pt.completed;});
+
+  // Stats cards
+  var totalEarned = done.reduce(function(s,pt){return s+(pt.amount||0);},0);
+  var directEarned = done.filter(function(pt){return pt.source==='direct';}).reduce(function(s,pt){return s+(pt.amount||0);},0);
+  var platEarned = done.filter(function(pt){return pt.source==='platform';}).reduce(function(s,pt){return s+(pt.amount||0);},0);
+  var avg = done.length ? Math.round(totalEarned/done.length) : 0;
+  document.getElementById('s-total-earned').textContent = '$'+totalEarned;
+  document.getElementById('s-direct-earned').textContent = '$'+directEarned;
+  document.getElementById('s-platform-earned').textContent = '$'+platEarned;
+  document.getElementById('s-avg').textContent = '$'+avg;
+
+  // Weekly sessions (last 8 weeks)
+  var weeks = [];
+  var weekLabels = [];
+  for(var i=7;i>=0;i--){
+    var start = new Date(); start.setDate(start.getDate()-i*7-6); start.setHours(0,0,0,0);
+    var end = new Date(); end.setDate(end.getDate()-i*7+1); end.setHours(23,59,59,999);
+    var count = done.filter(function(pt){
+      if(!pt.completed_at) return false;
+      var d=new Date(pt.completed_at);
+      return d>=start&&d<=end;
+    }).length;
+    weeks.push(count);
+    weekLabels.push('W'+(8-i));
+  }
+
+  // Paid vs free
+  var paidCount = done.filter(function(pt){return pt.payment!=='free';}).length;
+  var freeCount = done.filter(function(pt){return pt.payment==='free';}).length;
+
+  // Direct vs platform
+  var directCount = done.filter(function(pt){return pt.source==='direct';}).length;
+  var platCount = done.filter(function(pt){return pt.source==='platform';}).length;
+
+  // Earnings over time
+  var sortedDone = done.slice().sort(function(a,b){return new Date(a.completed_at)-new Date(b.completed_at);});
+  var cumEarnings = []; var cumLabels = []; var running = 0;
+  sortedDone.forEach(function(pt){
+    running += (pt.amount||0);
+    cumEarnings.push(running);
+    cumLabels.push(new Date(pt.completed_at).toLocaleDateString());
   });
-}, 1000);
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/wdd-dashboard/sw.js').catch(function(e) { console.log('SW failed:', e); });
+
+  var chartDefaults = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {legend:{display:false}},
+  };
+
+  var colors = {accent:'#2d5a3d', muted:'#d8d3cb', warning:'#e67e22', purple:'#7b5ea7'};
+
+  // Destroy old charts
+  Object.values(charts).forEach(function(c){if(c) c.destroy();});
+
+  charts.weekly = new Chart(document.getElementById('weeklyChart'), {
+    type:'bar', data:{labels:weekLabels, datasets:[{data:weeks, backgroundColor:colors.accent, borderRadius:2}]},
+    options:{...chartDefaults, scales:{y:{beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#f0ede7'}}, x:{grid:{display:false}}}}
+  });
+
+  charts.paidFree = new Chart(document.getElementById('paidFreeChart'), {
+    type:'doughnut',
+    data:{labels:['Paid','Free'], datasets:[{data:[paidCount,freeCount], backgroundColor:[colors.accent,colors.muted], borderWidth:0}]},
+    options:{...chartDefaults, plugins:{legend:{display:true, position:'bottom', labels:{font:{family:'DM Mono',size:10}, boxWidth:12}}}, cutout:'65%'}
+  });
+
+  charts.source = new Chart(document.getElementById('sourceChart'), {
+    type:'doughnut',
+    data:{labels:['Direct','Platform'], datasets:[{data:[directCount,platCount], backgroundColor:[colors.accent,colors.purple], borderWidth:0}]},
+    options:{...chartDefaults, plugins:{legend:{display:true, position:'bottom', labels:{font:{family:'DM Mono',size:10}, boxWidth:12}}}, cutout:'65%'}
+  });
+
+  charts.earnings = new Chart(document.getElementById('earningsChart'), {
+    type:'line',
+    data:{labels:cumLabels, datasets:[{data:cumEarnings, borderColor:colors.accent, backgroundColor:'rgba(45,90,61,0.08)', fill:true, tension:0.3, pointRadius:3}]},
+    options:{...chartDefaults, scales:{y:{beginAtZero:true, grid:{color:'#f0ede7'}, ticks:{callback:function(v){return'$'+v;}}}, x:{grid:{display:false}, ticks:{maxTicksLimit:6}}}}
+  });
+}
+
+// ─── LIVE TIMERS ─────────────────────────────────────
+setInterval(function(){
+  playtests.filter(function(pt){return !pt.completed&&pt.timer_started&&!pt.timer_paused;}).forEach(function(pt){
+    var tel=document.getElementById('tmr-'+pt.id);
+    var bel=document.getElementById('bar-'+pt.id);
+    if(!tel) return;
+    var t=fmtTimer(pt);
+    tel.textContent=t.text; tel.className='timer-display '+t.cls;
+    if(bel){bel.style.width=t.pct+'%';bel.style.background=t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d';}
+  });
+},1000);
+
+// SW
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/wdd-dashboard/sw.js').catch(function(e){console.log('SW:',e);});
 }
 </script>
 </body>
