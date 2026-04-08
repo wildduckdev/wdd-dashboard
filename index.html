@@ -733,11 +733,42 @@ async function pauseTimer(id) {
 // ─── MOBILE ──────────────────────────────────────────
 function toggleMobile() {
   var open=document.getElementById('mobilePanel').classList.contains('open');
+  // Switch form content based on active page
+  var activePage = document.querySelector('.page.active');
+  var isPlatforms = activePage && activePage.id === 'page-platforms';
+  var title = document.querySelector('.mobile-panel-title');
+  var body = document.getElementById('mobileForm');
+  if (isPlatforms) {
+    title.textContent = 'Add Platform';
+    body.innerHTML = '<div class="form-field"><label>Platform Name *</label><input type="text" id="mp-name" placeholder="e.g. weplaytestgames"></div>'+
+      '<div class="form-field"><label>Default Payment ($)</label><input type="number" id="mp-pay" placeholder="5"></div>'+
+      '<div class="form-field"><label>Link</label><input type="url" id="mp-link" placeholder="https://..."></div>'+
+      '<button class="btn-add" onclick="addPlatformMobile()">Add Platform</button>';
+  } else {
+    title.textContent = 'Add Playtest';
+    body.innerHTML = formHTML('m_');
+    toggleF('m_'); toggleFormSource('m_');
+  }
   document.getElementById('fab').classList.toggle('open');
   document.getElementById('mobileOverlay').classList.toggle('open');
   document.getElementById('mobilePanel').classList.toggle('open');
   document.body.style.overscrollBehaviorY=open?'':'none';
 }
+async function addPlatformMobile() {
+  var name = document.getElementById('mp-name').value.trim();
+  if (!name) { alert('Platform name is required.'); return; }
+  var pay = parseFloat(document.getElementById('mp-pay').value)||5;
+  var link = document.getElementById('mp-link').value.trim();
+  var {data:ud} = await sb.auth.getUser();
+  var {data,error} = await sb.from('platforms').insert({user_id:ud.user.id,name,default_payment:pay,link}).select().single();
+  if (!error) {
+    extPlatforms.push(data);
+    renderPlatforms();
+    buildForms();
+    closeMobile();
+  }
+}
+
 function closeMobile() {
   document.getElementById('fab').classList.remove('open');
   document.getElementById('mobileOverlay').classList.remove('open');
@@ -933,19 +964,29 @@ function renderCharts() {
   document.getElementById('s-platform-earned').textContent = '$'+platEarned;
   document.getElementById('s-avg').textContent = '$'+avg;
 
-  // Weekly sessions (last 8 weeks)
+  // Weekly sessions - from April 1 2026 in 7-day buckets
+  var origin = new Date('2026-04-01T00:00:00');
+  var now = new Date();
+  var msSinceOrigin = now - origin;
+  var totalWeeks = Math.ceil(msSinceOrigin / (7*24*3600*1000));
+  totalWeeks = Math.max(totalWeeks, 1);
+  // Show last 8 weeks max
+  var showWeeks = Math.min(totalWeeks, 8);
+  var startWeekIdx = totalWeeks - showWeeks;
   var weeks = [];
   var weekLabels = [];
-  for(var i=7;i>=0;i--){
-    var start = new Date(); start.setDate(start.getDate()-i*7-6); start.setHours(0,0,0,0);
-    var end = new Date(); end.setDate(end.getDate()-i*7+1); end.setHours(23,59,59,999);
+  for(var i=0;i<showWeeks;i++){
+    var wIdx = startWeekIdx + i;
+    var wStart = new Date(origin.getTime() + wIdx*7*24*3600*1000);
+    var wEnd = new Date(wStart.getTime() + 7*24*3600*1000 - 1);
     var count = done.filter(function(pt){
       if(!pt.completed_at) return false;
       var d=new Date(pt.completed_at);
-      return d>=start&&d<=end;
+      return d>=wStart&&d<=wEnd;
     }).length;
     weeks.push(count);
-    weekLabels.push('W'+(8-i));
+    var fmt = function(d){ return (d.getMonth()+1)+'/'+d.getDate(); };
+    weekLabels.push(fmt(wStart)+'-'+fmt(wEnd));
   }
 
   // Paid vs free
