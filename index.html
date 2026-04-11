@@ -406,18 +406,16 @@ var charts = {};
 
 // ─── COPY ────────────────────────────────────────────
 function copyText(text, btnId) {
-  navigator.clipboard.writeText(text).then(function() {
-    var btn = document.getElementById(btnId);
+  var btn = document.getElementById(btnId);
+  var val = (btn && btn.dataset.val) ? btn.dataset.val : text;
+  navigator.clipboard.writeText(val).then(function() {
     if (!btn) return;
     btn.textContent = 'Copied';
     btn.classList.add('copied');
-    setTimeout(function() {
-      btn.textContent = 'Copy';
-      btn.classList.remove('copied');
-    }, 1500);
+    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
   }).catch(function() {
     var ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta);
+    ta.value = val; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
   });
@@ -978,10 +976,14 @@ function card(pt) {
     var t=fmtTimer(pt);
     var bc=t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d';
 
+    var copyBtn = function(text, id) {
+      return '<button class="copy-btn" id="'+id+'" onclick="copyText(this.dataset.val,\''+id+'\')" data-val="'+esc(text)+'">Copy</button>';
+    };
+
     detail+='<div class="card-body">'+
-      '<div class="card-field card-field-full"><label>Game</label><div class="card-field-row"><p>'+esc(pt.name)+'</p><button class="copy-btn" onclick="copyText(''+pt.name.replace(/'/g,"\\'")+'','copy-gn-'+pt.id+'')" id="copy-gn-'+pt.id+'">Copy</button></div></div>'+
-      (pt.dev?'<div class="card-field"><label>Developer</label><div class="card-field-row"><p>'+esc(pt.dev)+'</p><button class="copy-btn" onclick="copyText(''+pt.dev.replace(/'/g,"\\'")+'','copy-dev-'+pt.id+'')" id="copy-dev-'+pt.id+'">Copy</button></div></div>':'')+
-      (pt.link?'<div class="card-field"><label>Link</label><div class="card-field-row"><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>25?pt.link.substring(0,25)+'...':esc(pt.link))+'</a><button class="copy-btn" onclick="copyText(''+pt.link.replace(/'/g,"\\'")+'','copy-lnk-'+pt.id+'')" id="copy-lnk-'+pt.id+'">Copy</button></div></div>':'')+
+      '<div class="card-field card-field-full"><label>Game</label><div class="card-field-row"><p>'+esc(pt.name)+'</p>'+copyBtn(pt.name,'copy-gn-'+pt.id)+'</div></div>'+
+      (pt.dev?'<div class="card-field"><label>Developer</label><div class="card-field-row"><p>'+esc(pt.dev)+'</p>'+copyBtn(pt.dev,'copy-dev-'+pt.id)+'</div></div>':'')+
+      (pt.link?'<div class="card-field"><label>Link</label><div class="card-field-row"><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>25?pt.link.substring(0,25)+'...':esc(pt.link))+'</a>'+copyBtn(pt.link,'copy-lnk-'+pt.id)+'</div></div>':'')+
       (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'')+
       '<div class="card-timer-wrap">'+
       '<div class="timer-info"><div class="timer-label">Time Remaining</div><div class="timer-display '+t.cls+'" id="tmr-'+pt.id+'">'+t.text+'</div></div>'+
