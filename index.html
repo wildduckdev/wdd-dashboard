@@ -19,6 +19,10 @@
   --bg:#f5f2ec;--ink:#1a1814;--ink-muted:#6b6560;
   --accent:#2d5a3d;--accent-light:#e8f0eb;--rule:#d8d3cb;
   --card:#fff;--danger:#c0392b;--warning:#e67e22;
+  --blue:#2471a3;--blue-light:#d6eaf8;
+  --purple:#7b5ea7;--purple-light:#ede0ff;
+  --teal:#148f77;--teal-light:#d1f2eb;
+  --orange:#ca6f1e;--orange-light:#fdebd0;
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:'DM Mono',monospace;font-size:13px;line-height:1.6;min-height:100vh}
@@ -103,6 +107,11 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .badge-done{color:#fff;background:var(--accent);border-color:var(--accent)}
 .badge-info{color:var(--ink-muted);border-color:var(--rule)}
 .badge-platform-ext{color:#7b5ea7;border-color:#7b5ea7}
+.badge-direct{color:#148f77;border-color:#148f77}
+.badge-paid{color:#2d5a3d;border-color:#2d5a3d;background:#e8f0eb}
+.badge-free{color:#ca6f1e;border-color:#ca6f1e;background:#fdebd0}
+.badge-done{color:#fff;background:#2d5a3d;border-color:#2d5a3d}
+.badge-info{color:var(--ink-muted);border-color:var(--rule)}
 
 /* UNDO */
 .undo-banner{background:var(--ink);color:#fff;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;font-size:11px}
@@ -115,6 +124,10 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .card-body{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
 .card-field label{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);display:block;margin-bottom:2px}
 .card-field a{color:var(--accent);text-decoration:none;font-size:11px;word-break:break-all}
+.copy-btn{background:none;border:1px solid var(--rule);color:var(--ink-muted);font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;padding:2px 7px;cursor:pointer;transition:all 0.15s;margin-left:6px;vertical-align:middle}
+.copy-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.copy-btn.copied{background:var(--accent);border-color:var(--accent);color:#fff}
+.card-field-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .card-field a:hover{text-decoration:underline}
 .card-field p{font-size:12px}
 .card-field-full{grid-column:1/-1}
@@ -391,6 +404,83 @@ var undoSecs = {};
 var isSignUp = false;
 var charts = {};
 
+// ─── COPY ────────────────────────────────────────────
+function copyText(text, btnId) {
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+// ─── FORM PERSISTENCE ────────────────────────────────
+var FORM_KEY = 'wdd_form_draft';
+
+function saveFormDraft(p) {
+  var draft = {
+    source: (document.getElementById(p+'source')||{}).value||'direct',
+    name: (document.getElementById(p+'name')||{}).value||'',
+    genre: (document.getElementById(p+'genre')||{}).value||'',
+    pay: (document.getElementById(p+'pay')||{}).value||'paid',
+    amt: (document.getElementById(p+'amt')||{}).value||'20',
+    link: (document.getElementById(p+'link')||{}).value||'',
+    dev: (document.getElementById(p+'dev')||{}).value||'',
+    notes: (document.getElementById(p+'notes')||{}).value||'',
+    plat: (document.getElementById(p+'plat')||{}).value||'Standalone',
+    os: (document.getElementById(p+'os')||{}).value||'Linux',
+    dead: (document.getElementById(p+'dead')||{}).value||'48',
+    hrs: (document.getElementById(p+'hrs')||{}).value||'',
+    waiting: (document.getElementById(p+'waiting')||{}).checked||false
+  };
+  try { localStorage.setItem(FORM_KEY, JSON.stringify(draft)); } catch(e) {}
+}
+
+function loadFormDraft(p) {
+  try {
+    var raw = localStorage.getItem(FORM_KEY);
+    if (!raw) return;
+    var draft = JSON.parse(raw);
+    var fields = ['name','genre','amt','link','dev','notes','hrs'];
+    fields.forEach(function(f) {
+      var el = document.getElementById(p+f);
+      if (el && draft[f]) el.value = draft[f];
+    });
+    var selects = ['source','pay','plat','os','dead'];
+    selects.forEach(function(f) {
+      var el = document.getElementById(p+f);
+      if (el && draft[f]) el.value = draft[f];
+    });
+    var wait = document.getElementById(p+'waiting');
+    if (wait) wait.checked = draft.waiting || false;
+    toggleF(p);
+    toggleFormSource(p);
+  } catch(e) {}
+}
+
+function clearFormDraft() {
+  try { localStorage.removeItem(FORM_KEY); } catch(e) {}
+}
+
+function attachFormListeners(p) {
+  var ids = ['source','name','genre','pay','amt','link','dev','notes','plat','os','dead','hrs','waiting'];
+  ids.forEach(function(f) {
+    var el = document.getElementById(p+f);
+    if (!el) return;
+    var evt = el.type === 'checkbox' ? 'change' : 'input';
+    el.addEventListener(evt, function() { saveFormDraft(p); });
+  });
+}
+
 // ─── AUTH ───────────────────────────────────────────
 function toggleAuthMode() {
   isSignUp = !isSignUp;
@@ -487,10 +577,32 @@ function formHTML(p) {
 }
 
 function buildForms() {
-  document.getElementById('desktopForm').innerHTML = formHTML('d_');
-  document.getElementById('mobileForm').innerHTML = formHTML('m_');
-  // Set defaults
-  ['d_','m_'].forEach(function(p) { toggleF(p); toggleFormSource(p); });
+  document.getElementById('desktopForm').innerHTML = formHTML('d_') + '<button class="btn-add" style="background:transparent;color:var(--ink-muted);border:1px solid var(--rule);margin-top:4px" onclick="clearFormAndDraft()">Clear Form</button>';
+  document.getElementById('mobileForm').innerHTML = formHTML('m_') + '<button class="btn-add" style="background:transparent;color:var(--ink-muted);border:1px solid var(--rule);margin-top:4px" onclick="clearFormAndDraft()">Clear Form</button>';
+  // Load draft into desktop form, then sync to mobile
+  loadFormDraft('d_');
+  // Sync desktop values to mobile
+  syncForms('d_', 'm_');
+  attachFormListeners('d_');
+  attachFormListeners('m_');
+}
+
+function syncForms(from, to) {
+  var ids = ['source','name','genre','pay','amt','link','dev','notes','plat','os','dead','hrs'];
+  ids.forEach(function(f) {
+    var src = document.getElementById(from+f);
+    var dst = document.getElementById(to+f);
+    if (src && dst) dst.value = src.value;
+  });
+  var srcWait = document.getElementById(from+'waiting');
+  var dstWait = document.getElementById(to+'waiting');
+  if (srcWait && dstWait) dstWait.checked = srcWait.checked;
+  toggleF(to); toggleFormSource(to);
+}
+
+function clearFormAndDraft() {
+  clearFormDraft();
+  ['d_','m_'].forEach(function(p) { clearF(p); });
 }
 
 function toggleFormSource(p) {
@@ -568,7 +680,7 @@ async function addPlaytest(p) {
 }
 
 function clearF(p) {
-  ['name','genre','dev','link','notes','amt','hrs'].forEach(function(f){
+  ['name','genre','dev','link','notes','hrs'].forEach(function(f){
     var el=document.getElementById(p+f); if(el) el.value='';
   });
   var pay=document.getElementById(p+'pay'); if(pay) pay.value='paid';
@@ -846,7 +958,7 @@ function platBadge(pt) {
 
 function sourceBadge(pt) {
   if(pt.source==='platform') return '<span class="badge badge-platform-ext">Platform</span>';
-  return '<span class="badge badge-info">Direct</span>';
+  return '<span class="badge badge-direct">Direct</span>';
 }
 
 // ─── CARD ────────────────────────────────────────────
@@ -867,8 +979,9 @@ function card(pt) {
     var bc=t.cls==='danger'?'#c0392b':t.cls==='warning'?'#e67e22':'#2d5a3d';
 
     detail+='<div class="card-body">'+
-      (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'')+
-      (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'')+
+      '<div class="card-field card-field-full"><label>Game</label><div class="card-field-row"><p>'+esc(pt.name)+'</p><button class="copy-btn" onclick="copyText(''+pt.name.replace(/'/g,"\\'")+'','copy-gn-'+pt.id+'')" id="copy-gn-'+pt.id+'">Copy</button></div></div>'+
+      (pt.dev?'<div class="card-field"><label>Developer</label><div class="card-field-row"><p>'+esc(pt.dev)+'</p><button class="copy-btn" onclick="copyText(''+pt.dev.replace(/'/g,"\\'")+'','copy-dev-'+pt.id+'')" id="copy-dev-'+pt.id+'">Copy</button></div></div>':'')+
+      (pt.link?'<div class="card-field"><label>Link</label><div class="card-field-row"><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>25?pt.link.substring(0,25)+'...':esc(pt.link))+'</a><button class="copy-btn" onclick="copyText(''+pt.link.replace(/'/g,"\\'")+'','copy-lnk-'+pt.id+'')" id="copy-lnk-'+pt.id+'">Copy</button></div></div>':'')+
       (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'')+
       '<div class="card-timer-wrap">'+
       '<div class="timer-info"><div class="timer-label">Time Remaining</div><div class="timer-display '+t.cls+'" id="tmr-'+pt.id+'">'+t.text+'</div></div>'+
