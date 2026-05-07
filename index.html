@@ -190,6 +190,7 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
 .form-field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6560' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-color:var(--bg)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-check{display:flex;flex-direction:row;align-items:center;gap:8px}
+#d_directFields,#m_directFields{display:flex;flex-direction:column;gap:11px}
 .form-check input{width:auto}
 .form-check label{font-size:12px;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer}
 .btn-add{background:var(--accent);color:#fff;border:none;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;width:100%;transition:background 0.2s;margin-top:2px}
@@ -298,12 +299,6 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
         <div class="list-header">
           <div class="section-title">Active Playtests</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <div class="filter-row" id="payFilter">
-              <button class="filter-btn active" onclick="setFilter('pay','all',this)">All</button>
-              <button class="filter-btn" onclick="setFilter('pay','paid',this)">Paid</button>
-              <button class="filter-btn" onclick="setFilter('pay','free',this)">Free</button>
-            </div>
-            <div class="filter-sep"></div>
             <div class="filter-row" id="sourceFilter">
               <button class="filter-btn active" onclick="setFilter('source','all',this)">All</button>
               <button class="filter-btn" onclick="setFilter('source','direct',this)">Direct</button>
@@ -340,8 +335,8 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
         <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Paid vs Free</div>
-        <div class="chart-wrap"><canvas id="paidFreeChart"></canvas></div>
+        <div class="chart-title">Top Genres</div>
+        <div class="chart-wrap"><canvas id="genreChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Direct vs Platform</div>
@@ -429,16 +424,19 @@ function saveFormDraft(p) {
     source: (document.getElementById(p+'source')||{}).value||'direct',
     name: (document.getElementById(p+'name')||{}).value||'',
     genre: (document.getElementById(p+'genre')||{}).value||'',
-    pay: (document.getElementById(p+'pay')||{}).value||'paid',
+    genreOther: (document.getElementById(p+'genreOther')||{}).value||'',
     amt: (document.getElementById(p+'amt')||{}).value||'20',
     link: (document.getElementById(p+'link')||{}).value||'',
     dev: (document.getElementById(p+'dev')||{}).value||'',
+    devplat: (document.getElementById(p+'devplat')||{}).value||'',
     notes: (document.getElementById(p+'notes')||{}).value||'',
     plat: (document.getElementById(p+'plat')||{}).value||'Standalone',
     os: (document.getElementById(p+'os')||{}).value||'Linux',
     dead: (document.getElementById(p+'dead')||{}).value||'48',
     hrs: (document.getElementById(p+'hrs')||{}).value||'',
-    waiting: (document.getElementById(p+'waiting')||{}).checked||false
+    waiting: (document.getElementById(p+'waiting')||{}).checked||false,
+    email: (document.getElementById(p+'email')||{}).value||'',
+    privacy: (document.getElementById(p+'privacy')||{}).checked!==false
   };
   try { localStorage.setItem(FORM_KEY, JSON.stringify(draft)); } catch(e) {}
 }
@@ -448,20 +446,23 @@ function loadFormDraft(p) {
     var raw = localStorage.getItem(FORM_KEY);
     if (!raw) return;
     var draft = JSON.parse(raw);
-    var fields = ['name','genre','amt','link','dev','notes','hrs'];
+    var fields = ['name','genre','genreOther','amt','link','dev','devplat','notes','hrs','email'];
     fields.forEach(function(f) {
       var el = document.getElementById(p+f);
-      if (el && draft[f]) el.value = draft[f];
+      if (el && draft[f] !== undefined && draft[f] !== '') el.value = draft[f];
     });
-    var selects = ['source','pay','plat','os','dead'];
+    var selects = ['source','plat','os','dead'];
     selects.forEach(function(f) {
       var el = document.getElementById(p+f);
       if (el && draft[f]) el.value = draft[f];
     });
     var wait = document.getElementById(p+'waiting');
     if (wait) wait.checked = draft.waiting || false;
+    var priv = document.getElementById(p+'privacy');
+    if (priv) priv.checked = draft.privacy !== false;
     toggleF(p);
     toggleFormSource(p);
+    toggleGenreOther(p);
   } catch(e) {}
 }
 
@@ -470,7 +471,7 @@ function clearFormDraft() {
 }
 
 function attachFormListeners(p) {
-  var ids = ['source','name','genre','pay','amt','link','dev','notes','plat','os','dead','hrs','waiting'];
+  var ids = ['source','name','genre','genreOther','amt','link','dev','devplat','notes','plat','os','dead','hrs','waiting','email','privacy'];
   ids.forEach(function(f) {
     var el = document.getElementById(p+f);
     if (!el) return;
@@ -553,16 +554,22 @@ function formHTML(p) {
     return '<option value="'+pl.id+'">'+esc(pl.name)+'</option>';
   }).join('');
 
+  var genreOpts = '<option value="">-- Select Genre --</option><option>Action</option><option>Adventure</option><option>Arcade</option><option>Card Game</option><option>City Builder</option><option>Clicker / Idle</option><option>Educational</option><option>Fighting</option><option>Horror</option><option>Incremental</option><option>Metroidvania</option><option>Platformer</option><option>Puzzle</option><option>Racing</option><option>Rhythm</option><option>Roguelike / Roguelite</option><option>RPG</option><option>Shooter</option><option>Simulation</option><option>Sports</option><option>Strategy</option><option>Survival</option><option>Tower Defense</option><option>Visual Novel</option><option value="Other">Other</option>';
   return '<div class="form-field"><label>Source</label><select id="'+p+'source" onchange="toggleFormSource(\''+p+'\')"><option value="direct">Direct (My Session)</option>'+(platOptions?'<optgroup label="External Platforms">'+platOptions+'</optgroup>':'')+'</select></div>'+
     '<div id="'+p+'platInfo" style="display:none" class="form-field"><label>Platform</label><div id="'+p+'platLabel" style="font-size:11px;color:var(--ink-muted);padding:4px 0"></div></div>'+
     '<div class="form-field"><label>Game Name *</label><input type="text" id="'+p+'name" placeholder="e.g. OrbiTower"></div>'+
-    '<div class="form-row">'+
-    '<div class="form-field"><label>Genre</label><input type="text" id="'+p+'genre" placeholder="e.g. Tower Defense"></div>'+
-    '<div class="form-field"><label>Payment</label><select id="'+p+'pay" onchange="toggleF(\''+p+'\')"><option value="paid">Paid</option><option value="custom">Custom</option><option value="free">Free</option></select></div>'+
-    '</div>'+
-    '<div class="form-field" id="'+p+'amtWrap"><label>Amount ($)</label><input type="number" id="'+p+'amt" placeholder="20" value="20"></div>'+
     '<div class="form-field"><label>Game Link</label><input type="url" id="'+p+'link" placeholder="https://..."></div>'+
+    '<div class="form-row">'+
+    '<div class="form-field"><label>Genre</label><select id="'+p+'genre" onchange="toggleGenreOther(\''+p+'\')">'+genreOpts+'</select></div>'+
+    '<div class="form-field" id="'+p+'amtWrap"><label>Amount ($)</label><input type="number" id="'+p+'amt" placeholder="20" value="20"></div>'+
+    '</div>'+
+    '<div class="form-field" id="'+p+'genreOtherWrap" style="display:none"><label>Genre (specify)</label><input type="text" id="'+p+'genreOther" placeholder="e.g. Auto Battler"></div>'+
+    '<div id="'+p+'directFields">'+
     '<div class="form-field"><label>Developer / Studio</label><input type="text" id="'+p+'dev" placeholder="e.g. Spicy Sushi Games"></div>'+
+    '<div class="form-field"><label>Contact Email</label><input type="email" id="'+p+'email" placeholder="dev@studio.com"></div>'+
+    '<div class="form-check"><input type="checkbox" id="'+p+'privacy" checked><label for="'+p+'privacy">Public session</label></div>'+
+    '</div>'+
+    '<div id="'+p+'platDevWrap" style="display:none" class="form-field"><label>Developer / Studio</label><input type="text" id="'+p+'devplat" placeholder="e.g. Spicy Sushi Games"></div>'+
     '<div class="form-field"><label>Notes</label><textarea id="'+p+'notes" placeholder="What to focus on, known issues..."></textarea></div>'+
     '<div class="form-row">'+
     '<div class="form-field"><label>Platform</label><select id="'+p+'plat" onchange="toggleF(\''+p+'\')"><option value="Web">Web</option><option value="Android">Android</option><option value="Standalone" selected>Standalone</option></select></div>'+
@@ -586,7 +593,7 @@ function buildForms() {
 }
 
 function syncForms(from, to) {
-  var ids = ['source','name','genre','pay','amt','link','dev','notes','plat','os','dead','hrs'];
+  var ids = ['source','name','genre','genreOther','amt','link','dev','devplat','notes','plat','os','dead','hrs','email'];
   ids.forEach(function(f) {
     var src = document.getElementById(from+f);
     var dst = document.getElementById(to+f);
@@ -595,7 +602,10 @@ function syncForms(from, to) {
   var srcWait = document.getElementById(from+'waiting');
   var dstWait = document.getElementById(to+'waiting');
   if (srcWait && dstWait) dstWait.checked = srcWait.checked;
-  toggleF(to); toggleFormSource(to);
+  var srcPriv = document.getElementById(from+'privacy');
+  var dstPriv = document.getElementById(to+'privacy');
+  if (srcPriv && dstPriv) dstPriv.checked = srcPriv.checked;
+  toggleF(to); toggleFormSource(to); toggleGenreOther(to);
 }
 
 function clearFormAndDraft() {
@@ -609,21 +619,28 @@ function toggleFormSource(p) {
   var val = sel.value;
   var isDirect = val === 'direct';
   var platInfo = document.getElementById(p+'platInfo');
+  var directFields = document.getElementById(p+'directFields');
+  var platDevWrap = document.getElementById(p+'platDevWrap');
   if (platInfo) platInfo.style.display = isDirect ? 'none' : 'block';
+  if (directFields) directFields.style.display = isDirect ? 'flex' : 'none';
+  if (platDevWrap) platDevWrap.style.display = isDirect ? 'none' : 'flex';
 
   if (!isDirect) {
     var pl = extPlatforms.find(function(x){return x.id===val;});
     if (pl) {
       var lbl = document.getElementById(p+'platLabel');
       if (lbl) lbl.textContent = pl.name + (pl.link?' — '+pl.link:'');
-      // Set default payment
       var amtEl = document.getElementById(p+'amt');
       if (amtEl) amtEl.value = pl.default_payment || 5;
-      var payEl = document.getElementById(p+'pay');
-      if (payEl) payEl.value = 'paid';
       toggleF(p);
     }
   }
+}
+
+function toggleGenreOther(p) {
+  var sel = document.getElementById(p+'genre');
+  var wrap = document.getElementById(p+'genreOtherWrap');
+  if (wrap) wrap.style.display = (sel && sel.value === 'Other') ? 'flex' : 'none';
 }
 
 function toggleF(p) {
@@ -633,7 +650,7 @@ function toggleF(p) {
   var aw = document.getElementById(p+'amtWrap');
   var hw = document.getElementById(p+'hrsWrap');
   var ow = document.getElementById(p+'osWrap');
-  if (aw) aw.style.display = (pay&&pay.value==='free')?'none':'flex';
+  if (aw) aw.style.display = 'flex';
   if (hw) hw.style.display = (dead&&dead.value==='custom')?'flex':'none';
   if (ow) ow.style.display = (plat&&plat.value==='Standalone')?'flex':'none';
 }
@@ -648,8 +665,7 @@ async function addPlaytest(p) {
   var source = sourceVal==='direct' ? 'direct' : 'platform';
   var platformId = source==='platform' ? sourceVal : null;
 
-  var payType = g(p+'pay');
-  var amount = payType==='free' ? 0 : (parseFloat(g(p+'amt'))||20);
+  var amount = parseFloat(g(p+'amt'))||20;
   var deadSel = g(p+'dead');
   var hours = deadSel==='custom' ? (parseInt(g(p+'hrs'))||48) : parseInt(deadSel);
   var platform = g(p+'plat');
@@ -658,36 +674,44 @@ async function addPlaytest(p) {
   var waiting = waitEl ? waitEl.checked : false;
   var deadline = waiting ? null : new Date(Date.now()+hours*3600000).toISOString();
 
+  var genreSel = g(p+'genre');
+  var genre = genreSel === 'Other' ? g(p+'genreOther') : genreSel;
+
+  var dev = source==='direct' ? g(p+'dev') : g(p+'devplat');
+  var privacyEl = document.getElementById(p+'privacy');
+  var isPublic = privacyEl ? privacyEl.checked : true;
+
   var {data:ud} = await sb.auth.getUser();
   var rec = {
-    user_id: ud.user.id, name, genre: g(p+'genre'), dev: g(p+'dev'),
-    link: g(p+'link'), "desc": g(p+'notes'), payment: payType, amount,
+    user_id: ud.user.id, name, genre, dev,
+    link: g(p+'link'), "desc": g(p+'notes'), payment: 'paid', amount,
     platform, platform_os: platOs, deadline, total_hours: hours,
     completed: false, expanded: true, source,
-    timer_started: !waiting, timer_paused: false, paused_remaining: null
+    timer_started: !waiting, timer_paused: false, paused_remaining: null,
+    contact_email: source==='direct' ? g(p+'email') : null,
+    is_private: source==='direct' ? !isPublic : false
   };
 
-  // store platform reference in desc if from external platform
   if (platformId) {
     var pl = extPlatforms.find(function(x){return x.id===platformId;});
     if (pl) rec.dev = rec.dev || pl.name;
   }
 
   var {data, error} = await sb.from('playtests').insert(rec).select().single();
-  if (!error) { playtests.unshift(data); render(); clearF(p); if(p==='m_') closeMobile(); }
+  if (!error) { playtests.unshift(data); render(); clearFormDraft(); clearF(p); if(p==='m_') closeMobile(); }
 }
 
 function clearF(p) {
-  ['name','genre','dev','link','notes','hrs'].forEach(function(f){
+  ['name','genre','genreOther','dev','devplat','link','notes','hrs','email'].forEach(function(f){
     var el=document.getElementById(p+f); if(el) el.value='';
   });
-  var pay=document.getElementById(p+'pay'); if(pay) pay.value='paid';
   var dead=document.getElementById(p+'dead'); if(dead) dead.value='48';
   var plat=document.getElementById(p+'plat'); if(plat) plat.value='Standalone';
   var src=document.getElementById(p+'source'); if(src) src.value='direct';
   var wait=document.getElementById(p+'waiting'); if(wait) wait.checked=false;
   var amt=document.getElementById(p+'amt'); if(amt) amt.value='20';
-  toggleF(p); toggleFormSource(p);
+  var privacy=document.getElementById(p+'privacy'); if(privacy) privacy.checked=true;
+  toggleF(p); toggleFormSource(p); toggleGenreOther(p);
 }
 
 // ─── PLATFORMS ───────────────────────────────────────
@@ -787,7 +811,31 @@ async function deletePlaytest(id) {
 
 function toggleEdit(id) {
   var el=document.getElementById('edit-'+id);
-  if(el) el.classList.toggle('open');
+  if(el) {
+    el.classList.toggle('open');
+    if(el.classList.contains('open')) {
+      var pt=playtests.find(function(x){return x.id===id;});
+      var gsel=document.getElementById('eg-'+id);
+      if(pt&&gsel) {
+        var knownGenres=['Action','Adventure','Arcade','Card Game','City Builder','Clicker / Idle','Educational','Fighting','Horror','Incremental','Metroidvania','Platformer','Puzzle','Racing','Rhythm','Roguelike / Roguelite','RPG','Shooter','Simulation','Sports','Strategy','Survival','Tower Defense','Visual Novel'];
+        if(pt.genre && knownGenres.indexOf(pt.genre)===-1 && pt.genre!=='') {
+          gsel.value='Other';
+          var oInput=document.getElementById('ego-'+id);
+          var oWrap=document.getElementById('ego-wrap-'+id);
+          if(oInput) oInput.value=pt.genre;
+          if(oWrap) oWrap.style.display='flex';
+        } else {
+          gsel.value=pt.genre||'';
+        }
+      }
+    }
+  }
+}
+
+function toggleEditGenreOther(id) {
+  var sel=document.getElementById('eg-'+id);
+  var wrap=document.getElementById('ego-wrap-'+id);
+  if(wrap) wrap.style.display=(sel&&sel.value==='Other')?'flex':'none';
 }
 
 function toggleEditOs(id) {
@@ -799,17 +847,21 @@ function toggleEditOs(id) {
 async function saveEdit(id) {
   var pt=playtests.find(function(x){return x.id===id;});
   if(!pt) return;
-  var payType=document.getElementById('epay-'+id).value;
-  var amount=payType==='free'?0:(parseFloat(document.getElementById('eamt-'+id).value)||0);
+  var amount=parseFloat(document.getElementById('eamt-'+id).value)||0;
   var platform=document.getElementById('ep-'+id).value;
   var platOs=platform==='Standalone'?document.getElementById('eos-'+id).value:null;
+  var genreSel=document.getElementById('eg-'+id).value;
+  var genre=genreSel==='Other'?(document.getElementById('ego-'+id)||{value:''}).value.trim()||'Other':genreSel;
+  var privacyEl=document.getElementById('eprivacy-'+id);
   var updates={
     name:document.getElementById('en-'+id).value.trim()||pt.name,
-    genre:document.getElementById('eg-'+id).value.trim(),
+    genre:genre,
     dev:document.getElementById('ed-'+id).value.trim(),
     link:document.getElementById('el-'+id).value.trim(),
     "desc":document.getElementById('edesc-'+id).value.trim(),
-    payment:payType, amount, platform, platform_os:platOs
+    payment:'paid', amount, platform, platform_os:platOs,
+    contact_email: pt.source==='direct' ? (document.getElementById('eemail-'+id)||{value:''}).value.trim() : pt.contact_email,
+    is_private: pt.source==='direct' ? (privacyEl ? !privacyEl.checked : pt.is_private) : pt.is_private
   };
   await sb.from('playtests').update(updates).eq('id',id);
   Object.assign(pt,updates);
@@ -956,7 +1008,8 @@ function platBadge(pt) {
 
 function sourceBadge(pt) {
   if(pt.source==='platform') return '<span class="badge badge-platform-ext">Platform</span>';
-  return '<span class="badge badge-direct">Direct</span>';
+  var privBadge = pt.is_private ? '<span class="badge" style="color:#c0392b;border-color:#c0392b">Private</span>' : '<span class="badge" style="color:#2471a3;border-color:#2471a3">Public</span>';
+  return '<span class="badge badge-direct">Direct</span> '+privBadge;
 }
 
 // ─── CARD ────────────────────────────────────────────
@@ -983,6 +1036,7 @@ function card(pt) {
     detail+='<div class="card-body">'+
       '<div class="card-field card-field-full"><label>Game</label><div class="card-field-row"><p>'+esc(pt.name)+'</p>'+copyBtn(pt.name,'copy-gn-'+pt.id)+'</div></div>'+
       (pt.dev?'<div class="card-field"><label>Developer</label><div class="card-field-row"><p>'+esc(pt.dev)+'</p>'+copyBtn(pt.dev,'copy-dev-'+pt.id)+'</div></div>':'')+
+      (pt.source==='direct'&&pt.contact_email?'<div class="card-field"><label>Contact Email</label><div class="card-field-row"><a href="mailto:'+esc(pt.contact_email)+'">'+esc(pt.contact_email)+'</a>'+copyBtn(pt.contact_email,'copy-em-'+pt.id)+'</div></div>':'')+
       (pt.link?'<div class="card-field"><label>Link</label><div class="card-field-row"><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>25?pt.link.substring(0,25)+'...':esc(pt.link))+'</a>'+copyBtn(pt.link,'copy-lnk-'+pt.id)+'</div></div>':'')+
       (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'')+
       '<div class="card-timer-wrap">'+
@@ -992,15 +1046,17 @@ function card(pt) {
       '</div>'+
       '<div class="card-edit" id="edit-'+pt.id+'"><div class="edit-grid">'+
       '<div class="edit-field"><label>Game Name</label><input id="en-'+pt.id+'" value="'+esc(pt.name)+'"></div>'+
-      '<div class="edit-field"><label>Genre</label><input id="eg-'+pt.id+'" value="'+esc(pt.genre)+'"></div>'+
-      '<div class="edit-field"><label>Developer</label><input id="ed-'+pt.id+'" value="'+esc(pt.dev)+'"></div>'+
-      '<div class="edit-field"><label>Payment</label><select id="epay-'+pt.id+'"><option value="paid"'+(pt.payment==='paid'?' selected':'')+'>Paid</option><option value="custom"'+(pt.payment==='custom'?' selected':'')+'>Custom</option><option value="free"'+(pt.payment==='free'?' selected':'')+'>Free</option></select></div>'+
       '<div class="edit-field"><label>Amount ($)</label><input id="eamt-'+pt.id+'" type="number" value="'+(pt.amount||'')+'"></div>'+
-      '<div class="edit-field"><label>Platform</label><select id="ep-'+pt.id+'" onchange="toggleEditOs(\''+pt.id+'\')"><option value="Web"'+(pt.platform==='Web'?' selected':'')+'>Web</option><option value="Android"'+(pt.platform==='Android'?' selected':'')+'>Android</option><option value="Standalone"'+(pt.platform==='Standalone'?' selected':'')+'>Standalone</option></select></div>'+
+      '<div class="edit-field edit-field-full"><label>Genre</label><select id="eg-'+pt.id+'" onchange="toggleEditGenreOther(\''+pt.id+'\')" ><option value="">-- Select Genre --</option><option>Action</option><option>Adventure</option><option>Arcade</option><option>Card Game</option><option>City Builder</option><option>Clicker / Idle</option><option>Educational</option><option>Fighting</option><option>Horror</option><option>Incremental</option><option>Metroidvania</option><option>Platformer</option><option>Puzzle</option><option>Racing</option><option>Rhythm</option><option>Roguelike / Roguelite</option><option>RPG</option><option>Shooter</option><option>Simulation</option><option>Sports</option><option>Strategy</option><option>Survival</option><option>Tower Defense</option><option>Visual Novel</option><option value="Other">Other</option></select></div>'+
+      '<div class="edit-field edit-field-full" id="ego-wrap-'+pt.id+'" style="display:none"><label>Genre (specify)</label><input id="ego-'+pt.id+'" placeholder="e.g. Auto Battler"></div>'+
+      '<div class="edit-field"><label>Developer</label><input id="ed-'+pt.id+'" value="'+esc(pt.dev)+'"></div>'+
+      '<div class="edit-field"><label>Platform</label><select id="ep-'+pt.id+'" onchange="toggleEditOs(\''+pt.id+'\')" ><option value="Web"'+(pt.platform==='Web'?' selected':'')+'>Web</option><option value="Android"'+(pt.platform==='Android'?' selected':'')+'>Android</option><option value="Standalone"'+(pt.platform==='Standalone'?' selected':'')+'>Standalone</option></select></div>'+
       '<div class="edit-field" id="eo-wrap-'+pt.id+'" style="display:'+(pt.platform==='Standalone'?'flex':'none')+'"><label>OS</label><select id="eos-'+pt.id+'"><option value="Linux"'+(pt.platform_os==='Linux'?' selected':'')+'>Linux</option><option value="Windows"'+(pt.platform_os==='Windows'?' selected':'')+'>Windows</option></select></div>'+
+      (pt.source==='direct'?'<div class="edit-field"><label>Contact Email</label><input id="eemail-'+pt.id+'" type="email" value="'+esc(pt.contact_email||'')+'"></div>':'')+ 
+      (pt.source==='direct'?'<div class="edit-field" style="justify-content:flex-end;padding-top:18px"><div class="form-check"><input type="checkbox" id="eprivacy-'+pt.id+'"'+(pt.is_private?'':' checked')+'><label for="eprivacy-'+pt.id+'">Public session</label></div></div>':'')+
       '<div class="edit-field edit-field-full"><label>Link</label><input id="el-'+pt.id+'" value="'+esc(pt.link)+'"></div>'+
       '<div class="edit-field edit-field-full"><label>Notes</label><textarea id="edesc-'+pt.id+'">'+esc(pt["desc"])+'</textarea></div>'+
-      '</div><div class="edit-actions"><button class="btn btn-save" onclick="saveEdit(\''+pt.id+'\')">Save</button><button class="btn btn-cancel" onclick="toggleEdit(\''+pt.id+'\')">Cancel</button></div></div>'+
+      '</div><div class="edit-actions"><button class="btn btn-save" onclick="saveEdit(\''+pt.id+'\')" >Save</button><button class="btn btn-cancel" onclick="toggleEdit(\''+pt.id+'\')" >Cancel</button></div></div>'+
       '<div class="card-footer">'+
       (!pt.timer_started?'<button class="btn btn-start" onclick="startTimer(\''+pt.id+'\')">Start Timer</button>':'')+
       (pt.timer_started?'<button class="btn btn-pause" onclick="pauseTimer(\''+pt.id+'\')">'+(pt.timer_paused?'Resume':'Pause')+'</button>':'')+
@@ -1012,7 +1068,7 @@ function card(pt) {
     detail+='<div class="card-body">'+
       (pt.dev?'<div class="card-field"><label>Developer</label><p>'+esc(pt.dev)+'</p></div>':'')+
       (pt.link?'<div class="card-field"><label>Link</label><a href="'+esc(pt.link)+'" target="_blank">'+(pt.link.length>30?pt.link.substring(0,30)+'...':esc(pt.link))+'</a></div>':'')+
-      (pt.completed_at?'<div class="card-field"><label>Completed</label><p>'+new Date(pt.completed_at).toLocaleDateString()+'</p></div>':'')+
+      (pt.completed_at?'<div class="card-field"><label>Completed</label><p>'+new Date(pt.completed_at).toLocaleDateString('en-GB')+'</p></div>':'')+
       (pt["desc"]?'<div class="card-field card-field-full"><label>Notes</label><p>'+esc(pt["desc"])+'</p></div>':'')+
       '</div>'+
       '<div class="card-footer">'+
@@ -1088,25 +1144,39 @@ function renderCharts() {
   // Show last 8 weeks max
   var showWeeks = Math.min(totalWeeks, 8);
   var startWeekIdx = totalWeeks - showWeeks;
-  var weeks = [];
+  var weeksD = [], weeksP = [];
   var weekLabels = [];
   for(var i=0;i<showWeeks;i++){
     var wIdx = startWeekIdx + i;
     var wStart = new Date(origin.getTime() + wIdx*7*24*3600*1000);
     var wEnd = new Date(wStart.getTime() + 7*24*3600*1000 - 1);
-    var count = done.filter(function(pt){
+    var wDirect = done.filter(function(pt){
       if(!pt.completed_at) return false;
       var d=new Date(pt.completed_at);
-      return d>=wStart&&d<=wEnd;
+      return d>=wStart&&d<=wEnd&&pt.source==='direct';
     }).length;
-    weeks.push(count);
-    var fmt = function(d){ return (d.getMonth()+1)+'/'+d.getDate(); };
+    var wPlat = done.filter(function(pt){
+      if(!pt.completed_at) return false;
+      var d=new Date(pt.completed_at);
+      return d>=wStart&&d<=wEnd&&pt.source==='platform';
+    }).length;
+    weeksD.push(wDirect);
+    weeksP.push(wPlat);
+    var fmt = function(d){ return d.getDate()+'/'+(d.getMonth()+1); };
     weekLabels.push(fmt(wStart)+'-'+fmt(wEnd));
   }
 
-  // Paid vs free
-  var paidCount = done.filter(function(pt){return pt.payment!=='free';}).length;
-  var freeCount = done.filter(function(pt){return pt.payment==='free';}).length;
+  // Genre breakdown - exclude unknown/empty
+  var genreCounts = {};
+  done.forEach(function(pt){
+    var g = pt.genre ? pt.genre.trim() : '';
+    if (!g || g.toLowerCase() === 'unknown') return;
+    genreCounts[g] = (genreCounts[g]||0) + 1;
+  });
+  var genreEntries = Object.entries(genreCounts).sort(function(a,b){return b[1]-a[1];});
+  var genreLabels = genreEntries.map(function(e){return e[0];});
+  var genreData = genreEntries.map(function(e){return e[1];});
+  var genreColors = ['#2d5a3d','#7b5ea7','#148f77','#ca6f1e','#2471a3','#c0392b','#d4ac0d','#1abc9c'];
 
   // Direct vs platform
   var directCount = done.filter(function(pt){return pt.source==='direct';}).length;
@@ -1118,7 +1188,7 @@ function renderCharts() {
   sortedDone.forEach(function(pt){
     running += (pt.amount||0);
     cumEarnings.push(running);
-    cumLabels.push(new Date(pt.completed_at).toLocaleDateString());
+    cumLabels.push(new Date(pt.completed_at).toLocaleDateString('en-GB'));
   });
 
   var chartDefaults = {
@@ -1132,14 +1202,17 @@ function renderCharts() {
   Object.values(charts).forEach(function(c){if(c) c.destroy();});
 
   charts.weekly = new Chart(document.getElementById('weeklyChart'), {
-    type:'bar', data:{labels:weekLabels, datasets:[{data:weeks, backgroundColor:colors.accent, borderRadius:2}]},
-    options:{...chartDefaults, scales:{y:{beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#f0ede7'}}, x:{grid:{display:false}}}}
+    type:'bar', data:{labels:weekLabels, datasets:[
+      {label:'Direct', data:weeksD, backgroundColor:colors.accent, borderRadius:2},
+      {label:'Platform', data:weeksP, backgroundColor:colors.purple, borderRadius:2}
+    ]},
+    options:{...chartDefaults, plugins:{legend:{display:true, position:'bottom', labels:{font:{family:'DM Mono',size:10}, boxWidth:12}}}, scales:{y:{beginAtZero:true, stacked:true, ticks:{stepSize:1}, grid:{color:'#f0ede7'}}, x:{stacked:true, grid:{display:false}}}}
   });
 
-  charts.paidFree = new Chart(document.getElementById('paidFreeChart'), {
-    type:'doughnut',
-    data:{labels:['Paid','Free'], datasets:[{data:[paidCount,freeCount], backgroundColor:[colors.accent,colors.muted], borderWidth:0}]},
-    options:{...chartDefaults, plugins:{legend:{display:true, position:'bottom', labels:{font:{family:'DM Mono',size:10}, boxWidth:12}}}, cutout:'65%'}
+  charts.genre = new Chart(document.getElementById('genreChart'), {
+    type:'bar',
+    data:{labels:genreLabels.length?genreLabels:['No data'], datasets:[{data:genreData.length?genreData:[0], backgroundColor:genreColors.slice(0,genreLabels.length||1), borderRadius:2}]},
+    options:{...chartDefaults, indexAxis:'y', scales:{x:{beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#f0ede7'}}, y:{grid:{display:false}}}}
   });
 
   charts.source = new Chart(document.getElementById('sourceChart'), {
