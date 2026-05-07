@@ -279,6 +279,10 @@ header{background:var(--ink);border-bottom:2px solid var(--accent);position:stic
           <div class="header-stat"><div class="header-stat-num" id="hDone">0</div><div class="header-stat-label">Done</div></div>
           <div class="header-stat"><div class="header-stat-num" id="hEarned">$0</div><div class="header-stat-label">Earned</div></div>
         </div>
+        <select id="currencySelect" onchange="setCurrency(this.value)" style="background:#111;border:1px solid #333;color:#6b6560;padding:5px 8px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;outline:none">
+          <option value="USD">$ USD</option>
+          <option value="EUR">€ EUR</option>
+        </select>
         <button class="logout-btn" onclick="signOut()">Sign Out</button>
       </div>
     </div>
@@ -398,6 +402,35 @@ var undoTimers = {};
 var undoSecs = {};
 var isSignUp = false;
 var charts = {};
+var euroRate = null;
+var activeCurrency = 'USD';
+
+// ─── EUR RATE ────────────────────────────────────────
+async function fetchEuroRate() {
+  try {
+    var r = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    var d = await r.json();
+    euroRate = d.rates && d.rates.EUR ? d.rates.EUR : null;
+  } catch(e) { euroRate = null; }
+}
+
+function setCurrency(val) {
+  activeCurrency = val;
+  render();
+  if (document.getElementById('page-stats').classList.contains('active')) renderCharts();
+}
+
+function fmt$(amount) {
+  if (activeCurrency === 'EUR' && euroRate) {
+    return '€' + (amount * euroRate).toFixed(2);
+  }
+  return '$' + amount;
+}
+
+function fmtAxis(v) {
+  if (activeCurrency === 'EUR' && euroRate) return '€' + (v * euroRate).toFixed(0);
+  return '$' + v;
+}
 
 // ─── COPY ────────────────────────────────────────────
 function copyText(text, btnId) {
@@ -521,7 +554,7 @@ sb.auth.onAuthStateChange(function(event, session) {
 
 // ─── INIT ────────────────────────────────────────────
 async function init() {
-  await Promise.all([loadPlaytests(), loadPlatforms()]);
+  await Promise.all([loadPlaytests(), loadPlatforms(), fetchEuroRate()]);
   buildForms();
 }
 
@@ -1014,7 +1047,7 @@ function sourceBadge(pt) {
 
 // ─── CARD ────────────────────────────────────────────
 function card(pt) {
-  var payLabel=pt.payment==='free'?'Free':'$'+pt.amount;
+  var payLabel=pt.payment==='free'?'Free':fmt$(pt.amount);
   var bCls=pt.payment==='free'?'badge-free':'badge-paid';
   var expCls=pt.expanded?'expanded':'';
   var compCls=pt.completed?'completed':'';
@@ -1114,7 +1147,7 @@ function render() {
   var earned = allDone.reduce(function(s,pt){return s+(pt.amount||0);},0);
   document.getElementById('hActive').textContent = playtests.filter(function(pt){return !pt.completed;}).length;
   document.getElementById('hDone').textContent = allDone.length;
-  document.getElementById('hEarned').textContent = '$'+earned;
+  document.getElementById('hEarned').textContent = fmt$(earned);
 
   playtests.filter(function(pt){return pt.pendingUndo;}).forEach(function(pt){
     if(undoSecs[pt.id]!==undefined) updateCountdown(pt.id);
@@ -1130,10 +1163,10 @@ function renderCharts() {
   var directEarned = done.filter(function(pt){return pt.source==='direct';}).reduce(function(s,pt){return s+(pt.amount||0);},0);
   var platEarned = done.filter(function(pt){return pt.source==='platform';}).reduce(function(s,pt){return s+(pt.amount||0);},0);
   var avg = done.length ? Math.round(totalEarned/done.length) : 0;
-  document.getElementById('s-total-earned').textContent = '$'+totalEarned;
-  document.getElementById('s-direct-earned').textContent = '$'+directEarned;
-  document.getElementById('s-platform-earned').textContent = '$'+platEarned;
-  document.getElementById('s-avg').textContent = '$'+avg;
+  document.getElementById('s-total-earned').textContent = fmt$(totalEarned);
+  document.getElementById('s-direct-earned').textContent = fmt$(directEarned);
+  document.getElementById('s-platform-earned').textContent = fmt$(platEarned);
+  document.getElementById('s-avg').textContent = fmt$(avg);
 
   // Weekly sessions - from April 1 2026 in 7-day buckets
   var origin = new Date('2026-04-01T00:00:00');
@@ -1224,7 +1257,8 @@ function renderCharts() {
   charts.earnings = new Chart(document.getElementById('earningsChart'), {
     type:'line',
     data:{labels:cumLabels, datasets:[{data:cumEarnings, borderColor:colors.accent, backgroundColor:'rgba(45,90,61,0.08)', fill:true, tension:0.3, pointRadius:3}]},
-    options:{...chartDefaults, scales:{y:{beginAtZero:true, grid:{color:'#f0ede7'}, ticks:{callback:function(v){return'$'+v;}}}, x:{grid:{display:false}, ticks:{maxTicksLimit:6}}}}
+    options:{...chartDefaults, scales:{y:{beginAtZero:true, grid:{color:'#f0ede7'}, ticks:{callback:function(v){return fmtAxis(v);}}}, x:{grid:{display:false}, ticks:{maxTicksLimit:6}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return fmt$(ctx.parsed.y);}}}}}
   });
 }
 
