@@ -1,4 +1,4 @@
-const CACHE = 'wdd-v3';
+const CACHE = 'wdd-v4';
 const ASSETS = [
   '/wdd-dashboard/',
   '/wdd-dashboard/index.html',
